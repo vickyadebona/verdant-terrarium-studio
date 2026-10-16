@@ -1,4 +1,4 @@
-# 🌿 Verdant Studio — Interactive Terrarium Builder
+# 🌿 Verdant Studio — Interactive Terrarium Builder & Purchasing Platform
 
 An interactive, mobile-friendly botanical terrarium designer built with **React**, **TypeScript**, **Tailwind CSS**, and **SVG/Web Audio APIs**.
 
