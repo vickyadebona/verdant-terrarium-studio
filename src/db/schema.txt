@@ -1,0 +1,36 @@
+model CatalogItem {
+  id          String   @id // e.g., 'wardian', 'fern', 'mist-circuit-v1'
+  name        String
+  category    String   // 'vessel' | 'substrate' | 'flora' | 'hardscape' | 'hardware'
+  priceCents  Int      // e.g., 4500 ($45.00)
+  inStock     Boolean  @default(true)
+  weightOz    Float
+}
+
+model CustomBlueprint {
+  id          String   @id @default(cuid())
+  vesselId    String
+  substrates  Json     // Array of { type, depth, contour }
+  items       Json     // Array of { itemId, x, y, scale, rotation, flipX, zIndex }
+  hasSmartLed Boolean  @default(false)
+  hasAutoMist Boolean  @default(false)
+  svgPreview  String?  // Saved SVG or image URL
+  totalCents  Int
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Order {
+  id                String           @id @default(cuid())
+  customerEmail     String
+  customerName      String
+  blueprintId       String?
+  blueprint         CustomBlueprint? @relation(fields: [blueprintId], references: [id])
+  stripeSessionId   String           @unique
+  buildStatus       String           @default("BLUEPRINT_RECEIVED") // CIRCUIT_ASSEMBLY | PLANTING | SHIPPED
+  trackingNumber    String?
+  trackingCarrier   String?
+  shippingAddress   Json
+  totalPaidCents    Int
+  createdAt         DateTime         @default(now())
+}
