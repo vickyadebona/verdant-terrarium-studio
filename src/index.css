@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Optional smooth custom scrollbars for the specimen drawer */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(28, 25, 23, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(87, 83, 78, 0.6);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.8);
+}
