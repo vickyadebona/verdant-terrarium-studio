@@ -1,4 +1,4 @@
-# 🌿 Verdant Studio — Interactive Terrarium Builder & Purchasing Platform
+# 🌿 TerraScape — Interactive Terrarium Builder & Purchasing Platform
 
 An interactive, mobile-friendly botanical terrarium designer built with **React**, **TypeScript**, **Tailwind CSS**, and **SVG/Web Audio APIs**.
 
@@ -13,9 +13,29 @@ An interactive, mobile-friendly botanical terrarium designer built with **React*
 - **Micro-Climate & Lighting Modes**: Switch between **Daylight**, **Golden Hour**, and **Night Bioluminescence**, toggle **Fairy Lights**, and mist your terrarium with procedural sound effects via the Web Audio API.
 - **Responsive Mobile & Desktop UI**: Features a collapsible bottom-sheet tray on mobile (`100dvh`) and a studio split-pane layout on desktop.
 
+## 🗂️ Codebase Architecture & Onboarding
+
+For a complete breakdown of the modular file structure, component hierarchy, SVG coordinate math, and instructions on adding new plants, vessels, or hardware modules, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+
+```text
+src/
+├── TerrariumBuilder.tsx         # Top-level state orchestrator
+├── types/terrarium.ts           # Shared TypeScript interfaces & types
+├── data/                        # Vessels, substrates, flora/hardscape SVG catalogs, hardware & presets
+├── utils/                       # Web Audio synthesizer & BOM pricing / JSON blueprint serializer
+└── components/                  # Modular UI components (TopNavBar, TerrariumCanvas, BuilderDrawer, BlueprintModal, tabs/)
+```
+
 ## 🚀 Getting Started
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/vickyadebona/verdant-terrarium-studio.git](https://github.com/vickyadebona/verdant-terrarium-studio.git)
-cd verdant-terrarium-studio
+git clone https://github.com/vickyadebona/terrascape.git
+cd terrascape
+```
+
+### 2. Install dependencies & start dev server
+```bash
+npm install
+npm run dev
+```

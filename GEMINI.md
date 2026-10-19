@@ -1,11 +1,11 @@
-# Project Context: Verdant Studio — Custom Terrariums & Smart Vivarium Hardware
+# Project Context: TerraScape — Custom Terrariums & Smart Vivarium Hardware
 
 ## Repository & Owner
 - **Developer:** Vicky Adebona (https://github.com/vickyadebona)
 - **Hardware & Botanical Partner:** Andrew Hung (Mechanical Engineering, Custom PCB/Lighting & Ultrasonic Misting Circuits)
 
 ## Project Overview
-Verdant Studio is an interactive 2D SVG product configurator and e-commerce platform for custom-built botanical terrariums equipped with custom-engineered micro-climate electronics (PWM circadian LED rings, ultrasonic piezo misting manifolds, and closed-loop I2C humidity controllers).
+TerraScape is an interactive 2D SVG product configurator and e-commerce platform for custom-built botanical terrariums equipped with custom-engineered micro-climate electronics (PWM circadian LED rings, ultrasonic piezo misting manifolds, and closed-loop I2C humidity controllers).
 
 ## Current Implementation Status (Completed)
 - **Phase 1 Complete (`src/TerrariumBuilder.tsx`):**
