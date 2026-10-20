@@ -17,24 +17,31 @@ export const HardwareTab: React.FC<HardwareTabProps> = ({
       <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/50">
         <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
           <Wrench className="w-4 h-4" />
-          <span>Custom-Engineered Vivarium Hardware</span>
+          <span>Integrated Smart Vivarium Lid (Standard)</span>
         </div>
         <p className="text-[11px] text-stone-300 mt-1">
-          Designed &amp; soldered in-house. Equipping modules integrates custom PCBs, sensors, and misting manifolds directly into your vessel lid.
+          Every TerraScape vessel arrives with our custom circadian LED ring, whisper-quiet ventilation fan, and ultrasonic misting manifold pre-soldered and calibrated into the lid ($0).
         </p>
       </div>
 
       <div className="space-y-2.5">
         {HARDWARE_MODULES.map((hw) => {
-          const isEquipped = equippedHardware.includes(hw.id);
+          const isStandard = hw.price === 0;
+          const isEquipped = isStandard || equippedHardware.includes(hw.id);
           return (
             <div
               key={hw.id}
-              onClick={() => onToggleHardware(hw.id)}
-              className={`p-3 rounded-xl border transition cursor-pointer ${
-                isEquipped
-                  ? 'bg-emerald-950/50 border-emerald-500/70 shadow-sm'
-                  : 'bg-stone-800/40 border-stone-800 hover:border-stone-700'
+              onClick={() => {
+                if (!isStandard) {
+                  onToggleHardware(hw.id);
+                }
+              }}
+              className={`p-3 rounded-xl border transition ${
+                isStandard
+                  ? 'bg-emerald-950/40 border-emerald-500/50 cursor-default'
+                  : isEquipped
+                    ? 'bg-emerald-950/50 border-emerald-500/70 shadow-sm cursor-pointer'
+                    : 'bg-stone-800/40 border-stone-800 hover:border-stone-700 cursor-pointer'
               }`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -43,7 +50,9 @@ export const HardwareTab: React.FC<HardwareTabProps> = ({
                     <span className="text-xs sm:text-sm font-semibold text-stone-100">
                       {hw.name}
                     </span>
-                    <span className="text-xs font-bold text-emerald-400">+${hw.price}</span>
+                    <span className="text-xs font-bold text-emerald-400">
+                      {isStandard ? 'Included' : `+$${hw.price}`}
+                    </span>
                   </div>
                   <div className="text-[10px] font-mono text-amber-300/90 mt-0.5">{hw.specs}</div>
                 </div>

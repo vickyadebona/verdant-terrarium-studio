@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Sparkles,
   Sun,
@@ -10,9 +10,14 @@ import {
   Shuffle,
   SlidersHorizontal,
   ShoppingBag,
+  User as UserIcon,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import type { LightingMode } from '../types/terrarium';
 import { PRESETS } from '../data';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 interface TopNavBarProps {
   lighting: LightingMode;
@@ -43,6 +48,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   showMobilePresets,
   onToggleMobilePresets,
 }) => {
+  const { openCart, itemCount, openTrackerModal, orders } = useCart();
+  const { user, isAuthenticated, openAuthModal, signOut } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
   return (
     <>
       <header className="shrink-0 border-b border-stone-800/80 bg-stone-900/80 backdrop-blur-md px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 z-30">
@@ -163,12 +171,98 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             )}
           </button>
 
+          {/* Workshop Order Tracker Button (if customer has placed orders) */}
+          {orders.length > 0 && (
+            <button
+              onClick={() => openTrackerModal()}
+              className="px-2.5 py-1.5 sm:py-2 rounded-xl bg-stone-800/90 hover:bg-stone-700 text-emerald-300 border border-emerald-700/60 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title="Track Active Studio Builds"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">Tracker</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-200">
+                {orders.length}
+              </span>
+            </button>
+          )}
+
+          {/* Account / Auth Button */}
+          {isAuthenticated ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-stone-800/90 hover:bg-stone-750 text-stone-200 border border-stone-700/80 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                title={`Signed in as ${user?.name}`}
+              >
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-4 h-4 rounded-full object-cover ring-1 ring-emerald-400/60"
+                  />
+                ) : (
+                  <UserIcon className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span className="hidden md:inline max-w-[90px] truncate">{user?.name.split(' ')[0]}</span>
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-52 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl p-2.5 z-50 text-xs text-stone-200 animate-fade-in">
+                  <div className="px-2 py-1.5 border-b border-stone-800 mb-1.5">
+                    <p className="font-semibold text-stone-100 truncate">{user?.name}</p>
+                    <p className="text-[10px] text-stone-400 truncate">{user?.email}</p>
+                    <span className="inline-block mt-1 text-[9px] uppercase px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                      {user?.provider === 'google' ? 'Google Account' : 'Verified Email'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-stone-800 text-rose-300 hover:text-rose-200 flex items-center gap-1.5 cursor-pointer transition"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() =>
+                openAuthModal({
+                  title: 'Sign In to TerraScape',
+                  message:
+                    'Sign in with Google or your email to link custom terrarium blueprints, track workshop assembly, and manage orders.',
+                })
+              }
+              className="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-stone-800/90 hover:bg-stone-750 text-stone-300 hover:text-stone-100 border border-stone-700/80 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title="Sign In / Create Account"
+            >
+              <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Sign In</span>
+            </button>
+          )}
+
+          {/* Build Tray Slide-over Cart CTA */}
+          <button
+            onClick={openCart}
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-stone-800/90 hover:bg-stone-700 text-stone-200 border border-stone-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+            title="Open Your Jar"
+          >
+            <ShoppingBag className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">Your Jar</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-stone-950 text-[11px] font-bold">
+              {itemCount}
+            </span>
+          </button>
+
           {/* Primary Review & Order Custom Build CTA */}
           <button
             onClick={onOpenBlueprintModal}
             className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-semibold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
           >
-            <ShoppingBag className="w-4 h-4" />
             <span>Review Build</span>
             <span className="px-1.5 py-0.5 rounded-md bg-stone-950/20 text-stone-950 font-bold">
               ${totalPrice}

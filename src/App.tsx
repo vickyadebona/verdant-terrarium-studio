@@ -1,11 +1,21 @@
 import { useMemo, useState } from "react";
 import Terrarium3DShowcase from "./Terrarium3DShowcase";
 import Terrarium2DLayeredView, { type SoilLayerSpec } from "./Terrarium2DLayeredView";
+import { useCart } from "./context/CartContext";
+import { useAuth } from "./context/AuthContext";
+import { CartDrawer } from "./components/CartDrawer";
+import { StripeCheckoutModal } from "./components/StripeCheckoutModal";
+import { OrderTrackerModal } from "./components/OrderTrackerModal";
+import { AuthModal } from "./components/AuthModal";
+import type { User as UserProfile } from "./types/auth";
 
-type Page =
+import { EditionDetailPage } from "./components/EditionDetailPage";
+
+export type Page =
   | "home"
   | "design"
   | "build"
+  | "edition"
   | "terracare"
   | "about"
   | "faq"
@@ -13,7 +23,9 @@ type Page =
   | "checkout"
   | "payments";
 
-type Category = "Vessel" | "Foundation" | "Flora" | "Details" | "Climate";
+export type EditionKey = "cloud_forest" | "fern_study" | "moss_garden";
+
+type Category = "Vessel" | "Foundation" | "Flora" | "Details";
 
 type Option = {
   id: string;
@@ -39,7 +51,7 @@ const options: Option[] = [
     id: "jar_smooth",
     sku: "VSL-CIR-SM",
     name: "Tall Apothecary Jar · Smooth Lid",
-    note: "Hand-blown circular glass · Smooth matte-white collar lid · 14 in",
+    note: "Hand-blown circular glass · Integrated LED, fan & ultrasonic mist lid · 14 in",
     price: 84,
     category: "Vessel",
   },
@@ -47,7 +59,7 @@ const options: Option[] = [
     id: "jar_ridged",
     sku: "VSL-CIR-RG",
     name: "Tall Apothecary Jar · Ridged Lid",
-    note: "Hand-blown circular glass · Fluted matte-white collar lid · 14 in",
+    note: "Hand-blown circular glass · Fluted collar with integrated LED, fan & mist · 14 in",
     price: 92,
     category: "Vessel",
   },
@@ -148,27 +160,9 @@ const options: Option[] = [
     price: 14,
     category: "Details",
   },
-
-  // STEP 05: CLIMATE
-  {
-    id: "light",
-    sku: "HW-LED-01",
-    name: "Halo Grow Light",
-    note: "Warm, dimmable full-spectrum canopy light",
-    price: 48,
-    category: "Climate",
-  },
-  {
-    id: "mist",
-    sku: "HW-MST-02",
-    name: "Gentle Fogger",
-    note: "Quiet humidity system tucked beneath the lid",
-    price: 72,
-    category: "Climate",
-  },
 ];
 
-const categories: Category[] = ["Vessel", "Foundation", "Flora", "Details", "Climate"];
+const categories: Category[] = ["Vessel", "Foundation", "Flora", "Details"];
 
 const DEFAULT_SOIL_RECIPES: Record<string, SoilLayerSpec[]> = {
   forest: [
@@ -347,20 +341,331 @@ const SIGNATURE_PRESETS: Record<
   cloud_forest: {
     name: "The Cloud Forest",
     edition: "Studio edition · 01",
-    selected: ["jar_smooth", "forest", "fern", "moss", "stone", "light", "mist"],
+    selected: ["jar_smooth", "forest", "fern", "moss", "stone"],
     recipeKey: "forest",
   },
   fern_study: {
     name: "Fern Study",
     edition: "Studio edition · 02",
-    selected: ["jar_smooth", "volcanic", "fern", "fittonia", "lava_rock", "light"],
+    selected: ["jar_smooth", "volcanic", "fern", "fittonia", "lava_rock"],
     recipeKey: "volcanic",
   },
   moss_garden: {
     name: "Moss Garden",
     edition: "Studio edition · 03",
-    selected: ["jar_ridged", "tropical", "moss", "selaginella", "stone", "light", "mist"],
+    selected: ["jar_ridged", "tropical", "moss", "selaginella", "stone"],
     recipeKey: "tropical",
+  },
+};
+
+export interface EditionFloraItem {
+  name: string;
+  botanical: string;
+  role: string;
+  description: string;
+  humidity: string;
+  light: string;
+}
+
+export interface EditionElementItem {
+  name: string;
+  category: string;
+  description: string;
+}
+
+export interface EditionCareItem {
+  label: string;
+  schedule: string;
+  detail: string;
+}
+
+export interface StudioEdition {
+  id: EditionKey;
+  edition: string;
+  name: string;
+  tagline: string;
+  price: number;
+  image: string;
+  vessel: string;
+  vesselNote: string;
+  overview: string;
+  story: string;
+  presetKey: EditionKey;
+  flora: EditionFloraItem[];
+  elements: EditionElementItem[];
+  care: EditionCareItem[];
+}
+
+export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
+  cloud_forest: {
+    id: "cloud_forest",
+    edition: "Studio edition · 01",
+    name: "The Cloud Forest",
+    tagline: "A cascading temperate cloud-canopy with delicate button ferns and living moss mounds.",
+    price: 146,
+    image: images.collection,
+    vessel: "Tall Apothecary Jar · 14 in",
+    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    overview:
+      "Inspired by high-altitude Pacific coastal ravines where ocean fog gathers in sheltered tree canopies. The Cloud Forest balances vertical cascading foliage against sculpted ground mounds, creating a self-regulating water cycle under hand-blown glass.",
+    story:
+      "Every Cloud Forest build is planted by hand in our Los Angeles greenhouse. We anchor a four-layer woodland substrate, tuck living cushion moss blankets around the stone contours, and seat our integrated smart lid so your terrarium begins its rain cycle the moment you plug it in.",
+    presetKey: "cloud_forest",
+    flora: [
+      {
+        name: "Button Fern",
+        botanical: "Pellaea rotundifolia",
+        role: "Primary Canopy Fronds",
+        description:
+          "Soft, arching dark-emerald fronds with leathery button-shaped pinnae that catch and channel morning mist.",
+        humidity: "70% – 85% RH",
+        light: "Full-Spectrum 5000K LED",
+      },
+      {
+        name: "Cushion Pillow Moss",
+        botanical: "Leucobryum glaucum",
+        role: "Living Forest Carpet",
+        description:
+          "Velvet-soft mounded bryophyte domes that act as a living botanical sponge, storing humidity and releasing it gradually.",
+        humidity: "65% – 90% RH",
+        light: "Soft Diffused Canopy Glow",
+      },
+      {
+        name: "Miniature Epiphyte Vine",
+        botanical: "Ficus pumila var. quercifolia",
+        role: "Upper Glass & Stone Climber",
+        description:
+          "Tiny oak-shaped leaves that gracefully scale the rear glass wall and weathered river stones, adding vertical depth.",
+        humidity: "60% – 85% RH",
+        light: "Gentle Daylight LED",
+      },
+    ],
+    elements: [
+      {
+        name: "Pacific Forest Earth Blend",
+        category: "Stratified Foundation",
+        description:
+          "Four-stage substrate consisting of expanded clay drainage pebbles, activated filtration biochar, and nutrient-dense Douglas fir bark humus.",
+      },
+      {
+        name: "Willamette River Stones",
+        category: "Hardscape Specimen",
+        description:
+          "Hand-selected smooth, tumbled river stones that anchor soil contour waves and create natural mineral condensation pathways.",
+      },
+      {
+        name: "Integrated Smart Lid System",
+        category: "Hardware Engine",
+        description:
+          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+      },
+    ],
+    care: [
+      {
+        label: "Circadian Light",
+        schedule: "8–10h Daily Cycle",
+        detail:
+          "Built-in full-spectrum Halo LED provides optimal PAR light without producing excess heat. No direct window sun needed.",
+      },
+      {
+        label: "Ultrasonic Mist",
+        schedule: "2–3 Times Weekly",
+        detail:
+          "Cycle the built-in fogger for 3–5 minutes whenever the glass appears dry or frond tips need refreshment.",
+      },
+      {
+        label: "Distilled Water",
+        schedule: "Monthly Reservoir Top-Up",
+        detail:
+          "Refill the concealed top hatch with 2–3 oz of distilled or reverse-osmosis water to keep ultrasonic misting discs mineral-free.",
+      },
+      {
+        label: "Gentle Pruning",
+        schedule: "Every 3–4 Months",
+        detail:
+          "If a fern frond nears the glass lid, trim cleanly at the stem base with small shears to encourage bushier canopy growth.",
+      },
+    ],
+  },
+  fern_study: {
+    id: "fern_study",
+    edition: "Studio edition · 02",
+    name: "Fern Study",
+    tagline: "Contrasting architectural fronds, ruby nerve venation, and dark volcanic rock walls.",
+    price: 162,
+    image: images.fern,
+    vessel: "Tall Apothecary Jar · 14 in",
+    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    overview:
+      "A rich botanical exploration of leaf geometry and geological contrast. The intense ruby and blush venation of Fittonia stands out dramatically against the deep black scoria of volcanic rock walls and arching button fern stems.",
+    story:
+      "We sculpt the volcanic rock backwall piece by piece, locking porous basalt stones together so epiphyte roots can weave securely through the crevices. The result is a dramatic shaded tropical grotto that thrives in indoor spaces.",
+    presetKey: "fern_study",
+    flora: [
+      {
+        name: "Fittonia Trio (Nerve Plant)",
+        botanical: "Fittonia albivenis",
+        role: "Focal Foliage Accent",
+        description:
+          "Striking ruby, blush, and white mosaic-veined leaves that serve as a natural living hygrometer—softening when dry and perking up when misted.",
+        humidity: "75% – 90% RH",
+        light: "Warm 4000K–5000K LED",
+      },
+      {
+        name: "Button Fern",
+        botanical: "Pellaea rotundifolia",
+        role: "Structural Green Fronds",
+        description:
+          "Arching dark emerald fronds that rise above the volcanic rock face, providing dramatic height and organic texture.",
+        humidity: "70% – 85% RH",
+        light: "Full-Spectrum Canopy Light",
+      },
+      {
+        name: "Cushion Moss",
+        botanical: "Leucobryum glaucum",
+        role: "Rock Crevice Base",
+        description:
+          "Compact emerald mounds nestled into the base of the lava rock wall to anchor root zones and stabilize humidity.",
+        humidity: "70% – 90% RH",
+        light: "Soft Diffused LED",
+      },
+    ],
+    elements: [
+      {
+        name: "Volcanic Scoria Backwall",
+        category: "Hardscape Specimen",
+        description:
+          "Stacked natural black volcanic scoria boulders with porous cellular pockets that naturally retain micro-droplets of water.",
+      },
+      {
+        name: "Five-Layer Drainage Foundation",
+        category: "Stratified Foundation",
+        description:
+          "Expanded clay base, biochar purification filter, and tropical bark humus blend engineered specifically for humidity-loving ferns.",
+      },
+      {
+        name: "Integrated Smart Lid System",
+        category: "Hardware Engine",
+        description:
+          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+      },
+    ],
+    care: [
+      {
+        label: "Circadian Light",
+        schedule: "8–10h Daily Cycle",
+        detail:
+          "The under-lid LED illuminates the venation of the Fittonia and gives ferns steady, reliable daylight.",
+      },
+      {
+        label: "Ultrasonic Mist",
+        schedule: "Every 2–3 Days",
+        detail:
+          "Run the fogger for 5 minutes. The porous volcanic rock absorbs ambient mist and gradually releases it throughout the day.",
+      },
+      {
+        label: "Distilled Water",
+        schedule: "Monthly Top-Up",
+        detail:
+          "Always use distilled water to prevent white calcium mineral scale from accumulating on the dark volcanic stone.",
+      },
+      {
+        label: "Leaf Hydration",
+        schedule: "Visual Observation",
+        detail:
+          "Observe the Fittonia leaves—if they look slightly relaxed, a quick misting cycle will have them standing tall within an hour.",
+      },
+    ],
+  },
+  moss_garden: {
+    id: "moss_garden",
+    edition: "Studio edition · 03",
+    name: "Moss Garden",
+    tagline: "A tranquil Japanese woodland Zen composition featuring ancient clubmoss and silica ribbons.",
+    price: 138,
+    image: images.moss,
+    vessel: "Tall Fluted Apothecary Jar · 14 in",
+    vesselNote: "Helical ridged matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    overview:
+      "A minimalist meditation on ancient non-vascular bryophytes. Contoured ribbons of fine white silica sand flow between velvety domes of cushion moss and feathery plumes of prehistoric Selaginella clubmoss beneath a fluted ridged collar.",
+    story:
+      "Moss is the oldest land plant on Earth, surviving for over 450 million years. In this sealed apothecary vessel, moss recycles its own moisture in an almost closed loop, creating an extraordinarily peaceful, low-maintenance living companion.",
+    presetKey: "moss_garden",
+    flora: [
+      {
+        name: "Cushion Moss",
+        botanical: "Leucobryum glaucum",
+        role: "Primary Zen Mounds",
+        description:
+          "Smooth, undulating domes of velvet-green moss that stay vivid year-round and absorb ambient mist directly through their leaves.",
+        humidity: "75% – 95% RH",
+        light: "Soft 5000K Diffused Glow",
+      },
+      {
+        name: "Selaginella Clubmoss",
+        botanical: "Selaginella kraussiana",
+        role: "Feathery Micro-Canopy",
+        description:
+          "Delicate, lace-like prehistoric foliage that arches above the moss pillows, resembling miniature ancient cedar trees.",
+        humidity: "70% – 90% RH",
+        light: "Gentle Daylight LED",
+      },
+      {
+        name: "Living Root Fiber Barrier",
+        botanical: "Sphagnum capillifolium",
+        role: "Substrate Boundary",
+        description:
+          "Micro-woven moss root layer that prevents fine soils from shifting into the decorative silica quartz ribbon.",
+        humidity: "80% – 95% RH",
+        light: "Low Ambient Light",
+      },
+    ],
+    elements: [
+      {
+        name: "Silica Quartz Ribbon",
+        category: "Decorative Horizon",
+        description:
+          "A sculpted white quartz sand horizon that reflects LED light upward into the emerald canopy.",
+      },
+      {
+        name: "Helical Ridged Apothecary Lid",
+        category: "Vessel Collar",
+        description:
+          "Custom-molded matte-white lid featuring architectural diagonal fluting and concealed USB-A power routing.",
+      },
+      {
+        name: "Integrated Smart Lid System",
+        category: "Hardware Engine",
+        description:
+          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+      },
+    ],
+    care: [
+      {
+        label: "Circadian Light",
+        schedule: "6–8h Daily Cycle",
+        detail:
+          "Moss prefers gentle, cooler light. The built-in LED provides the ideal spectrum without drying out the domes.",
+      },
+      {
+        label: "Ultrasonic Mist",
+        schedule: "Once or Twice Weekly",
+        detail:
+          "A brief 3-minute mist cycle is all that is required. Dew settles gently across the cushion tops.",
+      },
+      {
+        label: "Distilled Water",
+        schedule: "Every 4–6 Weeks",
+        detail:
+          "Because closed moss recycling is so efficient, reservoir refills are needed only once every month or two.",
+      },
+      {
+        label: "Condensation Check",
+        schedule: "Self-Regulating",
+        detail:
+          "Light morning fog on the glass is normal and healthy. The built-in micro fan gently circulates air to maintain clarity.",
+      },
+    ],
   },
 };
 
@@ -401,11 +706,18 @@ export type ChosenOption = Option & { quantity: number };
 
 export function App() {
   const [page, setPage] = useState<Page>("home");
+  const { user: currentUser, signOut } = useAuth();
+  const [selectedEdition, setSelectedEdition] = useState<EditionKey>("cloud_forest");
   const [activeCategory, setActiveCategory] = useState<Category>("Vessel");
-  const [selected, setSelected] = useState<string[]>(SIGNATURE_PRESETS.cloud_forest.selected);
+  const [selected, setSelected] = useState<string[]>([]);
   const [soilLayers, setSoilLayers] = useState<SoilLayerSpec[]>(DEFAULT_SOIL_RECIPES.forest);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("home");
+  };
 
   const chosen: ChosenOption[] = useMemo(() => {
     return options
@@ -430,6 +742,11 @@ export function App() {
     setPage(next);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  };
+
+  const openEdition = (key: EditionKey) => {
+    setSelectedEdition(key);
+    navigate("edition");
   };
 
   const loadSignaturePreset = (presetKey: keyof typeof SIGNATURE_PRESETS) => {
@@ -468,6 +785,24 @@ export function App() {
     });
   };
 
+  const { openCart, itemCount, openTrackerModal, orders, addStandardItem } = useCart();
+
+  const addEditionToJar = (edition: StudioEdition) => {
+    addStandardItem({
+      type: "signature_build",
+      name: `${edition.name} (${edition.edition})`,
+      sku: `EDT-${edition.id.toUpperCase()}`,
+      price: edition.price,
+      description: `${edition.vessel} · Includes live flora, stratified substrates & integrated smart lid`,
+    });
+    if (currentUser) {
+      openCart();
+    } else {
+      setAuthMode("login");
+      navigate("account");
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -501,12 +836,56 @@ export function App() {
           </button>
         </nav>
         <div className="header-actions">
-          <button className="text-button account-link" onClick={() => navigate("account")}>
-            Account
-          </button>
-          <button className="bag-button" onClick={() => navigate("checkout")}>
-            Bag <span>{totalElements}</span>
-          </button>
+          {orders.length > 0 && (
+            <button
+              className="text-button"
+              onClick={() => openTrackerModal()}
+              title="Track Active Studio Builds"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  backgroundColor: "#34d399",
+                  display: "inline-block",
+                }}
+              />
+              Tracker ({orders.length})
+            </button>
+          )}
+
+          {currentUser ? (
+            <>
+              <button
+                className="text-button account-link"
+                onClick={() => navigate("account")}
+                title={`Signed in as ${currentUser.name}`}
+              >
+                Account
+              </button>
+              <button
+                className="bag-button"
+                onClick={openCart}
+                title="Open Your Jar"
+              >
+                Your Jar <span>{itemCount || totalElements}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              className="nav-cta-button"
+              onClick={() => {
+                setAuthMode("login");
+                navigate("account");
+              }}
+              title="Sign in or create a TerraScape account"
+            >
+              Login / Create account
+            </button>
+          )}
+
           <button
             className="menu-button"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -520,7 +899,7 @@ export function App() {
 
       <main>
         {page === "home" && (
-          <Home navigate={navigate} loadSignaturePreset={loadSignaturePreset} />
+          <Home navigate={navigate} openEdition={openEdition} />
         )}
         {page === "design" && <DesignPage navigate={navigate} selected={selected} />}
         {page === "build" && (
@@ -537,11 +916,25 @@ export function App() {
             navigate={navigate}
           />
         )}
+        {page === "edition" && (
+          <EditionDetailPage
+            edition={STUDIO_EDITIONS[selectedEdition]}
+            navigate={navigate}
+            loadSignaturePreset={loadSignaturePreset}
+            addEditionToJar={addEditionToJar}
+          />
+        )}
         {page === "terracare" && <TerraCarePage navigate={navigate} />}
         {page === "about" && <About navigate={navigate} selected={selected} />}
         {page === "faq" && <FaqPage navigate={navigate} />}
         {page === "account" && (
-          <Account mode={authMode} setMode={setAuthMode} navigate={navigate} />
+          <Account
+            mode={authMode}
+            setMode={setAuthMode}
+            navigate={navigate}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
         )}
         {page === "checkout" && (
           <Checkout
@@ -599,10 +992,10 @@ export function App() {
  */
 function Home({
   navigate,
-  loadSignaturePreset,
+  openEdition,
 }: {
   navigate: (page: Page) => void;
-  loadSignaturePreset: (key: "cloud_forest" | "fern_study" | "moss_garden") => void;
+  openEdition: (key: EditionKey) => void;
 }) {
   return (
     <>
@@ -664,27 +1057,43 @@ function Home({
 
       <section className="collection-grid">
         <article
-          className="product-card feature"
-          onClick={() => loadSignaturePreset("cloud_forest")}
+          className="product-card"
+          onClick={() => openEdition("cloud_forest")}
+          style={{ cursor: "pointer" }}
         >
-          <img src={images.collection} alt="A collection of glass terrariums" />
+          <img src={images.collection} alt="The Cloud Forest studio edition terrarium" />
           <div className="product-card-body">
             <p className="eyebrow">Studio edition · 01</p>
             <h3>The Cloud Forest</h3>
-            <p>Maidenhair fern, mood moss, river stone</p>
+            <p>Button fern, cushion moss, river stone</p>
+            <span className="product-card-link">Explore edition &rarr;</span>
           </div>
         </article>
-        <article className="product-card" onClick={() => loadSignaturePreset("fern_study")}>
-          <img src={images.fern} alt="Fern and moss terrarium" />
-          <p className="eyebrow">Studio edition · 02</p>
-          <h3>Fern Study</h3>
-          <p>Button fern, fittonia, volcanic rock</p>
+        <article
+          className="product-card"
+          onClick={() => openEdition("fern_study")}
+          style={{ cursor: "pointer" }}
+        >
+          <img src={images.fern} alt="Fern Study studio edition terrarium" />
+          <div className="product-card-body">
+            <p className="eyebrow">Studio edition · 02</p>
+            <h3>Fern Study</h3>
+            <p>Button fern, fittonia, volcanic rock</p>
+            <span className="product-card-link">Explore edition &rarr;</span>
+          </div>
         </article>
-        <article className="product-card lower" onClick={() => loadSignaturePreset("moss_garden")}>
-          <img src={images.moss} alt="Small moss terrarium" />
-          <p className="eyebrow">Studio edition · 03</p>
-          <h3>Moss Garden</h3>
-          <p>Cushion moss, selaginella, river stone</p>
+        <article
+          className="product-card"
+          onClick={() => openEdition("moss_garden")}
+          style={{ cursor: "pointer" }}
+        >
+          <img src={images.moss} alt="Moss Garden studio edition terrarium" />
+          <div className="product-card-body">
+            <p className="eyebrow">Studio edition · 03</p>
+            <h3>Moss Garden</h3>
+            <p>Cushion moss, selaginella, river stone</p>
+            <span className="product-card-link">Explore edition &rarr;</span>
+          </div>
         </article>
       </section>
 
@@ -900,7 +1309,7 @@ function Builder({
 
       <div className="builder-controls">
         <div className="progress">
-          <span style={{ width: `${step * 20}%` }} />
+          <span style={{ width: `${(step / categories.length) * 100}%` }} />
         </div>
         <div className="steps">
           {categories.map((category, index) => (
@@ -932,11 +1341,23 @@ function Builder({
           <p className="option-instruction">
             {activeCategory === "Flora"
               ? "Select one or more plants below, and use the + / − controls to add multiple quantities of each."
-              : activeCategory === "Details" || activeCategory === "Climate"
-                ? "Select one or more options to include in your build—each is automatically layered into your terrarium."
+              : activeCategory === "Details"
+                ? "Select one or more natural accents to sculpt your terrarium hardscape."
                 : "Select one option below to continue."}
           </p>
         </div>
+
+        {activeCategory === "Vessel" && (
+          <div className="smart-lid-banner">
+            <span className="smart-lid-badge-pill">✓ Standard on every order</span>
+            <div className="smart-lid-banner-text">
+              <strong>All-Inclusive Smart Climate Lid</strong>
+              <p>
+                Every TerraScape vessel arrives complete with Andrew&apos;s custom circadian LED lighting, active ventilation fan, and ultrasonic misting manifold integrated directly into the lid collar ($0 / included).
+              </p>
+            </div>
+          </div>
+        )}
 
         <div
           className="option-list"
@@ -1096,7 +1517,7 @@ function Builder({
             <small>Current total</small>
             <strong>${subtotal}</strong>
           </div>
-          {step < 5 ? (
+          {step < categories.length ? (
             <button
               className="primary-button"
               onClick={() => setActiveCategory(categories[step])}
@@ -1611,11 +2032,48 @@ function Account({
   mode,
   setMode,
   navigate,
+  currentUser,
+  onLogout,
 }: {
   mode: "signup" | "login";
   setMode: (mode: "signup" | "login") => void;
   navigate: (page: Page) => void;
+  currentUser: UserProfile | null;
+  onLogin?: (user: UserProfile) => void;
+  onLogout: () => void;
 }) {
+  const { openCart, itemCount, openTrackerModal, orders } = useCart();
+  const { signIn, isLoading } = useAuth();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleGoogleSignIn = async () => {
+    setErrorMsg(null);
+    const result = await signIn("google");
+    if (!result.ok && result.error) {
+      setErrorMsg(result.error);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMsg(null);
+    const formData = new FormData(event.currentTarget);
+    const email = (formData.get("email") as string)?.trim();
+    const password = (formData.get("password") as string) || "";
+    const fullName = (formData.get("fullName") as string)?.trim() || "";
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      name: fullName,
+      isSignUp: mode === "signup",
+    });
+
+    if (!result.ok && result.error) {
+      setErrorMsg(result.error);
+    }
+  };
+
   return (
     <section className="account-page">
       <div className="account-image">
@@ -1625,48 +2083,239 @@ function Account({
           <cite>— W.B. Yeats</cite>
         </blockquote>
       </div>
-      <div className="account-form">
-        <div className="auth-tabs">
-          <button className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")}>
-            Create account
-          </button>
-          <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>
-            Sign in
-          </button>
+
+      {currentUser ? (
+        <div className="account-form">
+          <p className="eyebrow">Greenhouse Collector Profile</p>
+          <h1>Welcome, {currentUser.name}.</h1>
+          <p>
+            You are signed into your TerraScape collector account. Manage your bespoke terrarium
+            blueprints, active workshop orders, and botanical care notes.
+          </p>
+
+          <div className="account-dashboard">
+            <div className="account-profile-card">
+              <div className="account-profile-row">
+                <span>Collector Name</span>
+                <strong>{currentUser.name}</strong>
+              </div>
+              <div className="account-profile-row">
+                <span>Email Address</span>
+                <strong>{currentUser.email}</strong>
+              </div>
+              <div className="account-profile-row">
+                <span>Authentication Method</span>
+                <strong style={{ color: "var(--ts-forest)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#34d399", display: "inline-block" }} />
+                  {currentUser.provider === "google" ? "Google OAuth Verified" : "Email & Password"}
+                </strong>
+              </div>
+              <div className="account-profile-row">
+                <span>Membership Tier</span>
+                <strong style={{ color: "var(--ts-forest)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                  Studio Patron · Los Angeles, CA
+                </strong>
+              </div>
+              <div className="account-profile-row">
+                <span>Items in Your Jar</span>
+                <strong>{itemCount} build(s)</strong>
+              </div>
+              {orders.length > 0 && (
+                <div className="account-profile-row">
+                  <span>Active Assembly Orders</span>
+                  <strong style={{ color: "#22c55e" }}>{orders.length} order(s) in progress</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="account-actions-row">
+              {itemCount > 0 ? (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={openCart}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+                >
+                  Open Your Jar ({itemCount}) <ArrowIcon />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => navigate("home")}
+                >
+                  Browse Collection <ArrowIcon />
+                </button>
+              )}
+              {orders.length > 0 && (
+                <button
+                  type="button"
+                  className="secondary-outline-button"
+                  onClick={() => openTrackerModal()}
+                >
+                  Track Assembly ({orders.length})
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary-outline-button"
+                onClick={() => navigate("build")}
+              >
+                Design in Studio
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={onLogout}
+                style={{
+                  color: "var(--ts-clay)",
+                  fontWeight: 600,
+                  padding: "0.55rem 0.95rem",
+                  border: "1px solid var(--ts-border)",
+                  borderRadius: "2px",
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="eyebrow">Welcome to the greenhouse</p>
-        <h1>{mode === "signup" ? "Grow with us." : "Welcome back."}</h1>
-        <p>
-          {mode === "signup"
-            ? "Save designs, follow your order, and get thoughtful care notes."
-            : "Sign in to see your saved designs and orders."}
-        </p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            navigate("home");
-          }}
-        >
-          {mode === "signup" && (
-            <label>
-              Full name
-              <input required type="text" placeholder="Your name" />
-            </label>
-          )}
-          <label>
-            Email address
-            <input required type="email" placeholder="you@example.com" />
-          </label>
-          <label>
-            Password
-            <input required type="password" placeholder="At least 8 characters" />
-          </label>
-          <button className="primary-button" type="submit">
-            {mode === "signup" ? "Create my account" : "Sign in"} <ArrowIcon />
+      ) : (
+        <div className="account-form">
+          <div className="auth-tabs">
+            <button
+              className={mode === "signup" ? "active" : ""}
+              onClick={() => {
+                setMode("signup");
+                setErrorMsg(null);
+              }}
+            >
+              Create account
+            </button>
+            <button
+              className={mode === "login" ? "active" : ""}
+              onClick={() => {
+                setMode("login");
+                setErrorMsg(null);
+              }}
+            >
+              Sign in
+            </button>
+          </div>
+          <p className="eyebrow">Welcome to the greenhouse</p>
+          <h1>{mode === "signup" ? "Grow with us." : "Welcome back."}</h1>
+          <p>
+            {mode === "signup"
+              ? "Create an account to access Your Jar, save custom terrarium blueprints, and track living workshop orders."
+              : "Sign in to access Your Jar, view your saved terrarium designs, and track your builds."}
+          </p>
+
+          {/* Google Sign In One-Click Button */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.75rem",
+              width: "100%",
+              padding: "0.75rem 1rem",
+              borderRadius: "4px",
+              border: "1px solid var(--ts-border)",
+              background: "#ffffff",
+              color: "#1f2937",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              marginBottom: "1.25rem",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+              />
+            </svg>
+            <span>Continue with Google</span>
           </button>
-        </form>
-        <small>By continuing, you agree to our Terms and Privacy Policy.</small>
-      </div>
+
+          <div
+            style={{
+              position: "relative",
+              textAlign: "center",
+              margin: "1.25rem 0",
+              borderTop: "1px solid var(--ts-border)",
+            }}
+          >
+            <span
+              style={{
+                position: "relative",
+                top: "-0.65rem",
+                background: "var(--ts-cream)",
+                padding: "0 0.75rem",
+                fontSize: "0.75rem",
+                color: "var(--ts-muted)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Or with email
+            </span>
+          </div>
+
+          {errorMsg && (
+            <div
+              style={{
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                color: "#dc2626",
+                padding: "0.6rem 0.8rem",
+                borderRadius: "4px",
+                fontSize: "0.8rem",
+                marginBottom: "1rem",
+              }}
+            >
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {mode === "signup" && (
+              <label>
+                Full name
+                <input required name="fullName" type="text" placeholder="Your name" defaultValue="Vicky Adebona" />
+              </label>
+            )}
+            <label>
+              Email address
+              <input required name="email" type="email" placeholder="you@example.com" defaultValue="vicky@verdantstudio.com" />
+            </label>
+            <label>
+              Password
+              <input required name="password" type="password" placeholder="At least 8 characters" defaultValue="password123" />
+            </label>
+            <button className="primary-button" type="submit" disabled={isLoading}>
+              {mode === "signup" ? "Create my account" : "Sign in"} <ArrowIcon />
+            </button>
+          </form>
+          <small>By continuing, you agree to our Terms and Privacy Policy.</small>
+        </div>
+      )}
     </section>
   );
 }
@@ -1682,7 +2331,38 @@ function Checkout({
   subtotal: number;
   navigate: (page: Page) => void;
 }) {
+  const { user, isAuthenticated, openAuthModal } = useAuth();
   const shipping = subtotal >= 150 ? 0 : 18;
+
+  if (!isAuthenticated) {
+    return (
+      <section className="checkout-page" style={{ minHeight: "60vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <div className="checkout-main" style={{ maxWidth: "560px", textAlign: "center", margin: "0 auto" }}>
+          <p className="eyebrow">Authentication Required</p>
+          <h1>Save your world to checkout</h1>
+          <p style={{ margin: "1rem 0 2rem", color: "var(--ts-muted)", lineHeight: 1.6 }}>
+            Every TerraScape is an individually serialized living ecosystem. An account is required so Andrew can attach your custom blueprint to your workshop build tray and live order tracker.
+          </p>
+          <button
+            className="primary-button"
+            onClick={() =>
+              openAuthModal({
+                title: "Save Your Terrarium Before Checkout",
+                message:
+                  "Sign in or create an account to finalize your custom terrarium order and track Andrew's workshop assembly.",
+              })
+            }
+          >
+            Sign in or create account <ArrowIcon />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const nameParts = (user?.name || "Vicky Adebona").split(" ");
+  const firstName = nameParts[0] || "Vicky";
+  const lastName = nameParts.slice(1).join(" ") || "Adebona";
 
   return (
     <section className="checkout-page">
@@ -1715,41 +2395,41 @@ function Checkout({
           <div className="form-row">
             <label>
               First name
-              <input required />
+              <input required defaultValue={firstName} />
             </label>
             <label>
               Last name
-              <input required />
+              <input required defaultValue={lastName} />
             </label>
           </div>
           <label>
             Street address
-            <input required />
+            <input required defaultValue="1420 Abbot Kinney Blvd" />
           </label>
           <div className="form-row three">
             <label>
               City
-              <input required />
+              <input required defaultValue="Venice" />
             </label>
             <label>
               State
-              <input required />
+              <input required defaultValue="CA" />
             </label>
             <label>
               ZIP code
-              <input required />
+              <input required defaultValue="90291" />
             </label>
           </div>
           <label className="delivery-choice">
             <input type="radio" defaultChecked name="delivery" />
             <span>
-              <strong>Hand-delivered</strong>
-              <small>Climate-safe delivery · 3–5 days</small>
+              <strong>Hand-delivered by Studio Courier</strong>
+              <small>Climate-safe delivery in Los Angeles / Orange County</small>
             </span>
-            <b>{shipping ? `$${shipping}` : "Free"}</b>
+            <b>{shipping ? `$${shipping}` : "Complimentary"}</b>
           </label>
           <button className="primary-button" type="submit">
-            Continue to payment <ArrowIcon />
+            Continue to Stripe Payment <ArrowIcon />
           </button>
         </form>
       </div>
@@ -1797,27 +2477,63 @@ function Checkout({
 }
 
 function Payments({ navigate }: { navigate: (page: Page) => void }) {
+  const { openCheckoutModal, openTrackerModal, orders, subtotal } = useCart();
+
   return (
     <section className="payments-page">
       <div className="payment-card">
         <span className="secure-icon">S</span>
-        <p className="eyebrow">Payment integration reserved</p>
-        <h1>Stripe will live here.</h1>
+        <p className="eyebrow">Stripe Embedded In-App Payment</p>
+        <h1>256-Bit Encrypted Checkout</h1>
         <p>
-          This checkout step is prepared for a future Stripe Elements or Checkout integration.
-          Delivery details and your terrarium configuration will carry through securely.
+          Your dynamic Bill-of-Materials and circuit specifications are validated directly
+          against our engineering engine. Complete payment with zero external redirect.
         </p>
         <div className="integration-list">
-          <span>Order details ready</span>
-          <span>Shipping captured</span>
-          <span>Secure payment pending</span>
+          <span>✓ Express Wallets (Apple Pay, Google Pay, Link)</span>
+          <span>✓ Dynamic BOM &amp; Coordinate Blueprint Validation</span>
+          <span>✓ Live 5-Stage Workshop Assembly Tracker</span>
         </div>
-        <button className="primary-button" onClick={() => navigate("home")}>
-          Return to collection <ArrowIcon />
-        </button>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "24px" }}>
+          <button
+            className="primary-button"
+            onClick={openCheckoutModal}
+            style={{ cursor: "pointer" }}
+          >
+            Launch Stripe Checkout (${subtotal || 140}) <ArrowIcon />
+          </button>
+          {orders.length > 0 && (
+            <button
+              className="text-button"
+              style={{
+                border: "1px solid rgba(52, 211, 153, 0.4)",
+                padding: "10px 18px",
+                borderRadius: "12px",
+                color: "#34d399",
+                cursor: "pointer",
+              }}
+              onClick={() => openTrackerModal()}
+            >
+              Open Workshop Tracker ({orders.length})
+            </button>
+          )}
+          <button className="text-button" onClick={() => navigate("home")} style={{ cursor: "pointer" }}>
+            Return to collection
+          </button>
+        </div>
       </div>
     </section>
   );
 }
 
-export default App;
+export default function AppWithModals() {
+  return (
+    <>
+      <App />
+      <CartDrawer />
+      <StripeCheckoutModal />
+      <OrderTrackerModal />
+      <AuthModal />
+    </>
+  );
+}

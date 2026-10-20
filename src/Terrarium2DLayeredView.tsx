@@ -36,8 +36,9 @@ export default function Terrarium2DLayeredView({
   const selaginellaCount = selectedIds.filter((id) => id === "selaginella").length;
   const hasSpringtails = selectedIds.includes("springtails");
 
-  const lightOn = selectedIds.includes("light");
-  const mistOn = selectedIds.includes("mist");
+  // Lighting, fan & mist are included standard with every TerraScape vessel
+  const lightOn = true;
+  const mistOn = true;
 
   const jarBottomY = 496;
   const jarLeftX = 104;

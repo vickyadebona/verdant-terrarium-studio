@@ -1,3 +1,54 @@
+// NextAuth / Auth.js & PostgreSQL Prisma Schema for Phase 3
+
+model User {
+  id            String            @id @default(cuid())
+  name          String?
+  email         String            @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  blueprints    CustomBlueprint[]
+  orders        Order[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String  // 'google' | 'credentials'
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model CatalogItem {
   id          String   @id // e.g., 'wardian', 'fern', 'mist-circuit-v1'
   name        String
@@ -9,6 +60,8 @@ model CatalogItem {
 
 model CustomBlueprint {
   id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
   vesselId    String
   substrates  Json     // Array of { type, depth, contour }
   items       Json     // Array of { itemId, x, y, scale, rotation, flipX, zIndex }
@@ -22,12 +75,14 @@ model CustomBlueprint {
 
 model Order {
   id                String           @id @default(cuid())
+  userId            String?
+  user              User?            @relation(fields: [userId], references: [id])
   customerEmail     String
   customerName      String
   blueprintId       String?
   blueprint         CustomBlueprint? @relation(fields: [blueprintId], references: [id])
   stripeSessionId   String           @unique
-  buildStatus       String           @default("BLUEPRINT_RECEIVED") // CIRCUIT_ASSEMBLY | PLANTING | SHIPPED
+  buildStatus       String           @default("BLUEPRINT_RECEIVED") // CIRCUIT_SOLDERING | PLANTING | QUARANTINE | SHIPPED
   trackingNumber    String?
   trackingCarrier   String?
   shippingAddress   Json

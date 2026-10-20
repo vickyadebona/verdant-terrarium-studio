@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   ActiveTab,
+  CartItem,
   CatalogItem,
   FulfillmentType,
   HardwareId,
@@ -10,13 +11,17 @@ import type {
   SubstrateLayer,
   VesselId,
 } from './types/terrarium';
-import { CATALOG_ITEMS, PRESETS, VESSELS } from './data';
+import { CATALOG_ITEMS, PRESETS, SUBSTRATES, VESSELS } from './data';
 import { sfx } from './utils/soundEffects';
 import { calculateBomSummary, serializeBlueprint } from './utils/pricingAndBlueprint';
 import { TopNavBar } from './components/TopNavBar';
 import { TerrariumCanvas } from './components/TerrariumCanvas';
 import { BuilderDrawer } from './components/BuilderDrawer';
 import { BlueprintModal } from './components/BlueprintModal';
+import { CartDrawer } from './components/CartDrawer';
+import { StripeCheckoutModal } from './components/StripeCheckoutModal';
+import { OrderTrackerModal } from './components/OrderTrackerModal';
+import { AuthModal } from './components/AuthModal';
 
 export default function TerrariumBuilder() {
   // Core Terrarium State
@@ -243,6 +248,43 @@ export default function TerrariumBuilder() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedUid, deleteItem]);
 
+  // Load a custom blueprint from the Cart Drawer back into the studio canvas
+  const loadCustomBlueprint = (cartItem: CartItem) => {
+    if (!cartItem.blueprint) return;
+    const bp = cartItem.blueprint;
+    sfx.playPop(1.2);
+    setVesselId(bp.vessel.id);
+    setEquippedHardware(bp.hardwareModules.map((h) => h.id));
+    setFulfillmentType(bp.fulfillmentType);
+
+    const reconstructedSubstrates: SubstrateLayer[] = bp.substrateStackBottomToTop.map((s, idx) => {
+      const found = SUBSTRATES.find((sub) => sub.sku === s.sku) || SUBSTRATES[0];
+      return {
+        uid: `cart-sub-${idx}-${Date.now()}`,
+        type: found.id,
+        depth: s.depthMm,
+        contour: s.slopeWave,
+      };
+    });
+    setSubstrates(reconstructedSubstrates);
+
+    const reconstructedItems: PlacedItem[] = bp.specimens.map((spec, idx) => {
+      const foundCat = CATALOG_ITEMS.find((c) => c.sku === spec.sku) || CATALOG_ITEMS[0];
+      return {
+        uid: `cart-item-${idx}-${Date.now()}`,
+        itemId: foundCat.id,
+        x: spec.coordinates.x,
+        y: spec.coordinates.y,
+        scale: spec.scale,
+        rotation: spec.rotationDeg,
+        flipX: spec.flippedHorizontally,
+        zIndex: spec.zIndex,
+      };
+    });
+    setItems(reconstructedItems);
+    setSelectedUid(null);
+  };
+
   return (
     <div className="h-[100dvh] w-full bg-stone-950 text-stone-100 flex flex-col font-sans select-none overflow-hidden">
       <TopNavBar
@@ -317,6 +359,19 @@ export default function TerrariumBuilder() {
         bomSummary={bomSummary}
         serializedBlueprint={serializedBlueprint}
       />
+
+      {/* Slide-over Multi-Item Cart Drawer */}
+      <CartDrawer onLoadCustomBlueprintToStudio={loadCustomBlueprint} />
+
+      {/* Embedded Stripe Checkout Modal */}
+      <StripeCheckoutModal />
+
+      {/* 5-Stage Live Workshop Assembly Tracker */}
+      <OrderTrackerModal />
+
+      {/* Guest Intercept Auth Modal */}
+      <AuthModal />
     </div>
   );
 }
+

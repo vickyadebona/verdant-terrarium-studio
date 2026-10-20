@@ -8,8 +8,8 @@ export const HARDWARE_MODULES: HardwareModule[] = [
     name: 'Circadian PWM Grow-LED Ring',
     specs: 'Custom PCB • 2700K–6500K + 395nm UV • USB-C 5V',
     description:
-      'Custom-machined lid ring with programmable sunrise, midday, golden hour, and night bioluminescence spectrums.',
-    price: 48,
+      'Custom-machined lid ring with programmable sunrise, midday, golden hour, and night bioluminescence spectrums. Included standard.',
+    price: 0,
     powerDraw: '4.5W PWM',
   },
   {
@@ -18,8 +18,8 @@ export const HARDWARE_MODULES: HardwareModule[] = [
     name: 'Ultrasonic Piezo Mist Atomizer',
     specs: '113kHz Piezo Transducer • 80mL Hidden Reservoir',
     description:
-      'Micro-engineered misting manifold integrated into the vessel top that generates ultra-fine cloud fog on schedule.',
-    price: 64,
+      'Micro-engineered misting manifold integrated into the vessel top that generates ultra-fine cloud fog on schedule. Included standard.',
+    price: 0,
     powerDraw: '2.0W 5V',
   },
   {
@@ -28,8 +28,8 @@ export const HARDWARE_MODULES: HardwareModule[] = [
     name: 'Closed-Loop Climate Controller',
     specs: 'Sensirion SHT40 I2C Sensor + Micro Brushless Fan',
     description:
-      'Monitors internal relative humidity & temperature in real time, automatically cycling airflow to prevent glass condensation.',
-    price: 52,
+      'Monitors internal relative humidity & temperature in real time, automatically cycling airflow to prevent glass condensation. Included standard.',
+    price: 0,
     powerDraw: '0.8W Logic',
   },
   {

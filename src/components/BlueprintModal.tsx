@@ -7,6 +7,8 @@ import {
   Check,
   Copy,
   Download,
+  ShoppingBag,
+  Lock,
 } from 'lucide-react';
 import type {
   BomSummary,
@@ -18,6 +20,8 @@ import type {
   VesselConfig,
 } from '../types/terrarium';
 import { CATALOG_ITEMS, HARDWARE_MODULES, SUBSTRATES } from '../data';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 interface BlueprintModalProps {
   isOpen: boolean;
@@ -45,6 +49,8 @@ export const BlueprintModal: React.FC<BlueprintModalProps> = ({
   serializedBlueprint,
 }) => {
   const [copiedJson, setCopiedJson] = useState<boolean>(false);
+  const { addCustomBlueprint, openCheckoutModal } = useCart();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
   if (!isOpen) return null;
 
@@ -64,6 +70,49 @@ export const BlueprintModal: React.FC<BlueprintModalProps> = ({
     a.download = `terrascape-blueprint-${currentVessel.id}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleAddToCart = () => {
+    addCustomBlueprint({
+      blueprint: serializedBlueprint,
+      name: currentVessel.name,
+      vesselId: currentVessel.id,
+      price: bomSummary.total,
+      fulfillmentType,
+      hardwareIds: equippedHardware,
+      botanicalCount: items.length,
+      substrateCount: substrates.length,
+    });
+    onClose();
+  };
+
+  const handleInstantCheckout = () => {
+    const executeCheckout = () => {
+      addCustomBlueprint({
+        blueprint: serializedBlueprint,
+        name: currentVessel.name,
+        vesselId: currentVessel.id,
+        price: bomSummary.total,
+        fulfillmentType,
+        hardwareIds: equippedHardware,
+        botanicalCount: items.length,
+        substrateCount: substrates.length,
+      });
+      onClose();
+      openCheckoutModal();
+    };
+
+    if (!isAuthenticated) {
+      openAuthModal({
+        title: 'Save Blueprint Before Checkout',
+        message:
+          'Every TerraScape is an individually serialized living ecosystem. Please sign in or create an account so Andrew can link your coordinate blueprint to your workshop build tray.',
+        onAuthenticated: executeCheckout,
+      });
+      return;
+    }
+
+    executeCheckout();
   };
 
   return (
@@ -249,22 +298,29 @@ export const BlueprintModal: React.FC<BlueprintModalProps> = ({
 
         {/* Modal Footer */}
         <div className="px-5 py-3.5 bg-stone-950 border-t border-stone-800 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs text-stone-400">
-            Next step in Phase 3: Connect button to{' '}
-            <code className="text-emerald-300">/api/checkout</code> Stripe Session
-          </span>
-          <button
-            onClick={() => {
-              alert(
-                `Blueprint locked! Total: $${bomSummary.total}.00 USD.\nReady to POST serialized JSON to your Next.js / Stripe Checkout endpoint.`
-              );
-            }}
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs sm:text-sm transition cursor-pointer"
-          >
-            Proceed to Checkout (${bomSummary.total})
-          </button>
+          <div className="flex items-center gap-2 text-xs text-stone-400">
+            <Lock className="w-4 h-4 text-emerald-400" />
+            <span>Encrypted Stripe checkout with live workshop tracking</span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleAddToCart}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold text-xs sm:text-sm border border-stone-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <span>Add to Build Tray</span>
+            </button>
+            <button
+              onClick={handleInstantCheckout}
+              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-lg shadow-emerald-500/20"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Checkout (${bomSummary.total})</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+

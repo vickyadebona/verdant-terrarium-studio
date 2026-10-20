@@ -127,3 +127,69 @@ export interface SerializedBlueprint {
     price: number;
   }>;
 }
+
+export type CartItemType = 'custom_blueprint' | 'signature_build' | 'hardware' | 'accessory';
+
+export interface CartItem {
+  id: string;
+  type: CartItemType;
+  name: string;
+  sku: string;
+  price: number;
+  quantity: number;
+  fulfillmentType?: FulfillmentType;
+  blueprint?: SerializedBlueprint;
+  vesselId?: VesselId;
+  thumbnailSvg?: string;
+  description?: string;
+  hardwareIds?: HardwareId[];
+  botanicalCount?: number;
+  substrateCount?: number;
+}
+
+export type OrderStage =
+  | 'BLUEPRINT_RECEIVED'
+  | 'CIRCUIT_SOLDERING'
+  | 'PLANTING'
+  | 'QUARANTINE'
+  | 'SHIPPED';
+
+export interface StageHistoryEntry {
+  stage: OrderStage;
+  timestamp: string;
+  title: string;
+  notes: string;
+  technician: string;
+}
+
+export interface OrderStatusInfo {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  shippingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+  deliveryMethod: FulfillmentType;
+  deliveryOptionTitle: string;
+  deliveryNotes?: string;
+  items: CartItem[];
+  subtotal: number;
+  shippingFee: number;
+  taxAmount: number;
+  total: number;
+  stripePaymentIntentId: string;
+  paymentMethodDetails: {
+    brand: string;
+    last4: string;
+    wallet?: string;
+  };
+  currentStage: OrderStage;
+  stageHistory: StageHistoryEntry[];
+  trackingNumber?: string;
+  carrier?: string;
+  createdAt: string;
+  estimatedDeliveryDate: string;
+}
