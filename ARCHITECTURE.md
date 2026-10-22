@@ -1,19 +1,17 @@
-# 🌿 TerraScape — Architecture & Developer Onboarding Guide
+# 🌿 TerraScape — Architecture & Developer Guide
 
-Welcome to the **TerraScape** codebase! This document explains how the application is structured, how data and state flow between modules, and how to extend the studio with new vessels, botanicals, substrates, or smart hardware modules.
+Welcome to the **TerraScape** codebase! This document outlines the application architecture, directory structure, data flows, and technical subsystems of the **Guided Studio Wizard & Curated E-Commerce Platform**.
 
 ---
 
 ## 1. High-Level Overview
 
-TerraScape is an interactive 2D SVG product configurator and e-commerce specification builder for custom-built botanical terrariums equipped with micro-climate electronics (PWM circadian LED rings, ultrasonic piezo misting manifolds, and closed-loop I2C humidity controllers).
+**TerraScape** is a digital e-commerce and interactive specification platform for custom living botanical terrariums equipped with custom-engineered microclimate hardware:
+- **PWM Circadian LED Lighting:** Microcontroller-driven spectrum control mimicking natural sun & twilight cycles.
+- **Ultrasonic Piezo Misting:** High-frequency atomizing transducers producing ultra-fine micro-mist (1–5µm droplet diameter).
+- **Active Aeration:** Micro-ventilation fans providing continuous air exchange to prevent mold.
 
-Instead of a monolithic file, the codebase is organized by responsibility:
-- **Domain Types (`src/types/`)** — Shared TypeScript contracts.
-- **Static Catalogs & SVG Assets (`src/data/`)** — Declarative definitions of vessels, soil layers, flora/hardscape SVG artwork, smart hardware SKUs, and curated presets.
-- **Pure Utilities (`src/utils/`)** — Procedural Web Audio sound synthesis (`soundEffects.ts`) and Bill-of-Materials (BOM) pricing + JSON blueprint serialization (`pricingAndBlueprint.ts`).
-- **UI Components (`src/components/`)** — Modular React components separated into the top bar, interactive SVG stage, floating item inspector, responsive drawer tabs, and checkout blueprint modal.
-- **State Orchestrator (`src/TerrariumBuilder.tsx`)** — Holds the canonical build state and wires events between the drawer, top bar, canvas, and checkout modal.
+The application guides customers through a curated 4-step wizard (**01 Vessel & Lid** $\rightarrow$ **02 Foundation** $\rightarrow$ **03 Flora** $\rightarrow$ **04 Details**), pairs it with a dual **2D procedural cross-section stage** and an interactive **Three.js WebGL 3D showcase**, and manages cart, authentication, and living assembly order tracking.
 
 ---
 
@@ -21,32 +19,34 @@ Instead of a monolithic file, the codebase is organized by responsibility:
 
 ```text
 src/
-├── main.tsx                           # React DOM entry point
-├── App.tsx                            # Root wrapper rendering <TerrariumBuilder />
-├── TerrariumBuilder.tsx               # Main state orchestrator (~260 lines)
+├── main.tsx                           # React DOM entry point (wraps AuthProvider & CartProvider)
+├── App.tsx                            # Root application orchestrator, router & Studio Builder wizard
+├── index.css                          # Global design tokens, official TerraScape branding palette
+├── Terrarium2DLayeredView.tsx         # Procedural 2D cross-section SVG stage with custom soil slices
+├── Terrarium3DShowcase.tsx            # Three.js WebGL 3D showcase with OrbitControls & mist particles
 ├── types/
-│   └── terrarium.ts                   # All domain TypeScript types & interfaces
+│   ├── auth.ts                        # User credentials, session profiles & auth state types
+│   └── terrarium.ts                   # Core domain types (Vessel, Substrate, Hardware, Order)
 ├── data/
-│   ├── index.ts                       # Barrel export for all catalogs
-│   ├── vessels.tsx                    # 6 glass vessels (clipPath, outlinePath, lids/bases)
-│   ├── substrates.ts                  # 6 soil & drainage layer definitions
-│   ├── catalogItems.tsx               # 16+ flora & hardscape items with inline SVG renderers
-│   ├── hardware.ts                    # 4 custom PCB / misting hardware modules
-│   └── presets.ts                     # Curated ecosystems (Rainforest, Desert, Hollow)
+│   ├── index.ts                       # Barrel export for master catalogs
+│   ├── vessels.tsx                    # Hand-blown glass vessels & smart lid specs
+│   ├── substrates.ts                  # 6 geological soil & drainage layers
+│   ├── catalogItems.tsx               # Curated botanical & hardscape vector catalog
+│   ├── hardware.ts                    # 4 custom PCB / misting circuit modules
+│   └── presets.ts                     # Curated ecosystem presets (Rainforest, Cloud Forest, etc.)
 ├── utils/
-│   ├── soundEffects.ts                # Zero-asset Web Audio API synthesizer (pop, sand, mist)
-│   └── pricingAndBlueprint.ts         # Pure BOM calculator & Blueprint JSON serializer
+│   ├── router.ts                      # Clean client-side pathname router (/collections, /studio, etc.)
+│   ├── stripeCheckoutEngine.ts        # Authoritative pricing validator & 5-stage order simulator
+│   └── soundEffects.ts                # Zero-asset Web Audio API procedural synthesizer
+├── context/
+│   ├── AuthContext.tsx                # User session management with localStorage persistence
+│   └── CartContext.tsx                # Global shopping cart, order storage & tracker state
 └── components/
-    ├── TopNavBar.tsx                  # Header bar: presets, lighting mode, mist button, CTA
-    ├── TerrariumCanvas.tsx            # Interactive 2D SVG stage, pointer dragging, BOM pill
-    ├── ItemInspectorToolbar.tsx       # Floating toolbar for scaling/rotating/layering items
-    ├── BuilderDrawer.tsx              # Responsive sidebar / mobile bottom sheet container
-    ├── BlueprintModal.tsx             # BOM quote & JSON blueprint export modal
-    └── tabs/
-        ├── VesselsTab.tsx             # Tab 1: Glass enclosure selector
-        ├── SubstratesTab.tsx          # Tab 2: Soil layer adder, reorder & depth/wave sliders
-        ├── CatalogTab.tsx             # Tab 3 & 4: Flora & Hardscape grid picker
-        └── HardwareTab.tsx            # Tab 5: Smart vivarium circuit module toggles
+    ├── CartDrawer.tsx                 # Slide-over cart drawer with itemized line items
+    ├── AuthModal.tsx                  # Sign up / sign in modal (warm botanical parchment theme)
+    ├── StripeCheckoutModal.tsx        # In-app Stripe PaymentElement & address collection modal
+    ├── OrderTrackerModal.tsx          # 5-stage living vivarium assembly & quarantine tracker
+    └── EditionDetailPage.tsx         # Detailed showcase page for Andrew's Signature Editions
 ```
 
 ---
@@ -55,75 +55,81 @@ src/
 
 ```mermaid
 flowchart TD
-    TB["TerrariumBuilder.tsx (Canonical State)"]
-    
-    TB -->P["pricingAndBlueprint.ts (useMemo)"]
-    TB -->SFX["soundEffects.ts (Web Audio API)"]
-    
-    TB -->TNB["TopNavBar.tsx"]
-    TB -->TC["TerrariumCanvas.tsx"]
-    TB -->BD["BuilderDrawer.tsx"]
-    TB -->BM["BlueprintModal.tsx"]
-    
-    TC -->IIT["ItemInspectorToolbar.tsx"]
-    
-    BD -->VT["VesselsTab.tsx"]
-    BD -->ST["SubstratesTab.tsx"]
-    BD -->CT["CatalogTab.tsx (Flora & Hardscape)"]
-    BD -->HT["HardwareTab.tsx"]
-```
+    Main["main.tsx"]
+    Main --> AuthP["AuthContext.tsx"]
+    AuthP --> CartP["CartContext.tsx"]
+    CartP --> App["App.tsx (Root & Navigation)"]
 
-### State Ownership (`src/TerrariumBuilder.tsx`)
-All core configuration state lives in `TerrariumBuilder.tsx` so that any change immediately updates the SVG canvas, the live BOM price badge in the navbar, and the serialized JSON blueprint:
-1. **`vesselId` (`VesselId`)**: Currently active glass vessel (`globe`, `wardian`, `apothecary`, `cloche`, `teardrop`, `flask`).
-2. **`substrates` (`SubstrateLayer[]`)**: Ordered array (bottom-to-top, up to 6 layers) with `depth` (15–85mm) and `contour` (-25 to +25 wave slope).
-3. **`items` (`PlacedItem[]`)**: Botanical and hardscape specimens placed on the stage, storing `{ x, y, scale, rotation, flipX, zIndex }`.
-4. **`equippedHardware` (`HardwareId[]`)**: Active smart hardware SKUs integrated into the build.
-5. **`selectedUid` (`string | null`)**: Currently selected specimen on the canvas (controls visibility of `ItemInspectorToolbar` and keyboard shortcuts `Delete`/`Backspace`/`Escape`).
-6. **`lighting` (`LightingMode`)**: `'day' | 'golden' | 'night'`. Passed down to `TerrariumCanvas` and `CatalogTab` so bioluminescent items (`mycena`, `amethyst`, `lantern`) glow in night mode.
+    App --> TopHeader["Site Header & Nav (/collections, /studio, /our-story, /terracare)"]
+    App --> RouteView["Active Route View"]
+
+    RouteView --> HomeView["Home / Collections (/collections)"]
+    RouteView --> BuilderWizard["Studio Builder Wizard (/studio)"]
+    RouteView --> EditionDetail["EditionDetailPage (/editions/:id)"]
+    RouteView --> StoryView["Our Story (/our-story)"]
+    RouteView --> AccountView["Account & Orders (/account)"]
+
+    BuilderWizard --> View2D["Terrarium2DLayeredView.tsx (2D SVG Cross-Section)"]
+    BuilderWizard --> View3D["Terrarium3DShowcase.tsx (Three.js WebGL 3D)"]
+
+    App --> Modals["Floating Global Modals"]
+    Modals --> CartD["CartDrawer.tsx"]
+    Modals --> AuthM["AuthModal.tsx"]
+    Modals --> StripeM["StripeCheckoutModal.tsx"]
+    Modals --> OrderM["OrderTrackerModal.tsx"]
+```
 
 ---
 
 ## 4. Key Technical Subsystems
 
-### A. SVG Coordinate System & Pointer Dragging (`src/components/TerrariumCanvas.tsx`)
-- The SVG canvas uses a fixed internal coordinate space of `viewBox="0 0 400 500"`.
-- Because the SVG scales responsively across mobile and desktop screens, raw mouse/touch `clientX`/`clientY` pixel coordinates cannot be used directly.
-- **`getSvgCoords(clientX, clientY)`** uses `svg.createSVGPoint()` and `svg.getScreenCTM().inverse()` to accurately project screen pointer events into the `400x500` SVG coordinate space regardless of screen size or aspect ratio padding.
-- Everything inside the glass (LED light cone, fairy lights, soil layers, plants, and mist particles) is wrapped in `<g clipPath="url(#vesselClip)">` so items and substrate layers are cleanly masked to the contour of the chosen glass vessel.
+### A. Guided Studio Wizard (`src/App.tsx`)
+- Structured step-by-step customizer divided into 4 sequential categories:
+  1. **Vessel:** Single-choice glass enclosure with integrated smart climate lid.
+  2. **Foundation:** Soil recipes (Pacific Forest, Volcanic Backwall, Cloud Tropical) with an expandable drawer to adjust layer depths and wave contours.
+  3. **Flora:** Multi-select botanical specimens with an internal toggle for single-unit selection (no duplicates, default) vs. multi-quantity ($0\text{--}5$).
+  4. **Details:** Sculptural hardscape accents (Mopani wood, river stones, volcanic accent stones).
+- State persists in browser `sessionStorage` so navigating to other pages or refreshing never loses user configuration.
 
-### B. Dynamic Wave-Contoured Substrate Stacking (`src/components/TerrariumCanvas.tsx`)
-- Substrate layers stack upward starting from the vessel base (`y = 440`).
-- Each layer computes a closed SVG quadratic Bezier path (`Q 200 controlY 370 y`) using its `depth` and `contour` properties, seamlessly mating the top curve of layer $n$ with the bottom curve of layer $n+1$.
-- When a user plants a new specimen, `getTopSubstrateY()` in `TerrariumBuilder.tsx` sums the active substrate depths so the new plant lands naturally on top of the soil surface.
+### B. Procedural 2D Layered View (`src/Terrarium2DLayeredView.tsx`)
+- Renders an illustrated architectural cross-section of the apothecary jar.
+- Stacks substrate layers upward from `y = 496`, dynamically computing slice heights from each layer's `depthMm` specification.
+- Dynamically renders active plant fronds, moss bases, and volcanic rock accents based on active selections.
 
-### C. Live BOM Engine & Blueprint Serialization (`src/utils/pricingAndBlueprint.ts`)
-- **`calculateBomSummary()`** calculates itemized subtotals for the vessel, substrate stack, placed specimens, smart hardware modules, and fulfillment fee (`+$25` for local studio assembly vs. `$0` for nationwide DIY kit).
-- **`serializeBlueprint()`** outputs a deterministic `SerializedBlueprint` JSON object with exact SKUs, layer depths/slopes, and `(x, y, scale, rotation, flipX, zIndex)` specimen coordinates. In Phase 3, this payload will be sent directly to the backend for server-side price validation and Stripe Checkout metadata.
+### C. Interactive 3D Showcase (`src/Terrarium3DShowcase.tsx`)
+- Dynamically loads Three.js, `GLTFLoader`, and `OrbitControls` on demand.
+- Renders `public/models/terrarium-hero.glb` with ACES Filmic tone mapping, ambient illumination, and interactive particle mist simulation.
+- Gracefully falls back to high-resolution photography if WebGL is unavailable on the client device.
 
-### D. Procedural Web Audio Synthesizer (`src/utils/soundEffects.ts`)
-- `SoundEffects` uses the browser's native `AudioContext` to synthesize organic UI feedback on the fly with zero external MP3/WAV files:
-  - `sfx.playPop(pitchMultiplier)` — Sine wave frequency sweep for planting, selecting, or toggling hardware.
-  - `sfx.playSand()` — Bandpass-filtered white noise burst when adding, reordering, or removing soil layers.
-  - `sfx.playMist()` — Highpass-filtered white noise envelope when testing the ultrasonic mister.
+### D. Authoritative Pricing & Tamper Protection (`src/utils/stripeCheckoutEngine.ts`)
+- Client-side DOM manipulation cannot spoof prices: `validateCartPricing()` recalculates subtotals against immutable master catalog constants (`VESSELS`, `SUBSTRATES`, `CATALOG_ITEMS`, `HARDWARE_MODULES`).
+- Flags tampering if the submitted price deviates by more than $\$0.01$.
+
+### E. 5-Stage Living Assembly & Quarantine Tracker (`src/components/OrderTrackerModal.tsx`)
+- Replaces generic carrier status with the real-world botanical and hardware fabrication pipeline:
+  1. `BLUEPRINT_RECEIVED`
+  2. `CIRCUIT_SOLDERING`
+  3. `PLANTING`
+  4. `QUARANTINE` (7-day humidity stabilization & springtail balance)
+  5. `SHIPPED` (Climate-controlled courier / thermal crate)
+
+### F. Zero-Asset Procedural Web Audio (`src/utils/soundEffects.ts`)
+- Synthesizes organic sound design on the fly via the native `AudioContext`:
+  - `playPop()`: Sine wave frequency sweep ($280\text{--}580\text{ Hz}$).
+  - `playSand()`: Bandpass-filtered white noise burst ($1100\text{ Hz}$).
+  - `playMist()`: Highpass-filtered white noise envelope ($2800\text{ Hz}$).
+- Exactly **0 KB** of external audio files transferred over the network.
 
 ---
 
-## 5. Common Onboarding Tasks (How to Extend)
+## 5. Design System & Palette
 
-### How to Add a New Plant or Hardscape Specimen
-1. Open `src/data/catalogItems.tsx`.
-2. Append a new `CatalogItem` object to `CATALOG_ITEMS`:
-   - Give it a unique `id` and `sku` (e.g., `'FLR-ORC'` or `'HRD-QRT'`).
-   - Set `category: 'flora'` or `'hardscape'`.
-   - Set `bioluminescent: true` if it should react to Night Mode (`isNight` parameter in `renderSvg`).
-   - Draw the SVG artwork inside `renderSvg: (isNight) => (<g>...</g>)` anchored around `(0, 0)` as the base/roots of the item (growing upward into negative `y` values).
-
-### How to Add a New Glass Vessel
-1. Open `src/types/terrarium.ts` and add the new ID literal to `VesselId`.
-2. Open `src/data/vessels.tsx` and add the new `VesselConfig` entry with its `clipPath`, `outlinePath`, `highlightPath`, and optional `lidElement` / `baseElement` within the `400x500` viewBox (with the vessel floor around `y = 440`).
-
-### How to Add a New Smart Hardware Module
-1. Open `src/types/terrarium.ts` and add the new ID literal to `HardwareId`.
-2. Open `src/data/hardware.ts` and add the module's SKU, specs, power draw, and price to `HARDWARE_MODULES`.
-3. (Optional) If the hardware has a visual effect inside the glass vessel, render it conditionally inside `src/components/TerrariumCanvas.tsx` using `equippedHardware.includes('your_new_id')`.
+The entire interface adheres to the warm, organic **TerraScape Brand Palette**:
+- **Forest:** `#18392b` (Deep primary botanical green)
+- **Cream:** `#f8f5ee` (Light background surface)
+- **Parchment:** `#f0ede3` (Card and secondary panel fill)
+- **Moss:** `#657a4e` (Mid-tone natural accent)
+- **Lichen:** `#b8c2a1` (Soft badge and highlight tone)
+- **Clay:** `#b96d4b` (Terracotta warm accent)
+- **Muted Ink:** `#546358` (Body copy and secondary labels)
+- **Border:** `rgba(24, 57, 43, 0.14)` (Subtle organic divider)

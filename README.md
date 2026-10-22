@@ -1,41 +1,49 @@
-# 🌿 TerraScape — Interactive Terrarium Builder & Purchasing Platform
+# 🌿 TerraScape — Living Terrariums & Smart Vivarium Studio
 
-An interactive, mobile-friendly botanical terrarium designer built with **React**, **TypeScript**, **Tailwind CSS**, and **SVG/Web Audio APIs**.
+An interactive botanical terrarium studio and e-commerce platform built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Three.js WebGL**, and procedural **Web Audio APIs**.
 
-🔗 **Author:** [Vicky Adebona](https://github.com/vickyadebona)
+🔗 **Developer:** [Vicky Adebona](https://github.com/vickyadebona)  
+🔧 **Hardware & Botany Partner:** Andrew Hung
 
-## ✨ Features
+---
 
-- **6 Hand-Crafted Glass Vessels**: Choose between the *Classic Fishbowl Globe*, *Geometric Wardian Case*, *Corked Apothecary Jar*, *Botanical Bell Cloche*, *Sculptural Teardrop*, and *Alchemist Conical Flask*.
-- **Dynamic Substrate Layering**: Stack up to 6 soil & drainage layers (*River Gravel*, *Expanded Clay LECA*, *Activated Charcoal*, *Tropical Humus*, *Silica Quartz Sand*, and *Live Cushion Moss*) with real-time depth and wave-slope sliders.
-- **Interactive Botanicals & Hardscape**: Plant and arrange 16+ SVG specimens including *Boston Ferns*, *Blue Echeveria*, *Pink Nerve Plants*, *Mini Monstera*, *Bioluminescent Mycena*, *Venus Flytraps*, *Seiryu Stones*, *Amethyst Geodes*, and vivarium fauna.
-- **Direct Canvas Manipulation**: Drag, scale, rotate, flip horizontally, layer forward/backward, duplicate, or remove specimens using accurate SVG matrix coordinate mapping (`getScreenCTM`).
-- **Micro-Climate & Lighting Modes**: Switch between **Daylight**, **Golden Hour**, and **Night Bioluminescence**, toggle **Fairy Lights**, and mist your terrarium with procedural sound effects via the Web Audio API.
-- **Responsive Mobile & Desktop UI**: Features a collapsible bottom-sheet tray on mobile (`100dvh`) and a studio split-pane layout on desktop.
+## ✨ Key Features
 
-## 🗂️ Codebase Architecture & Onboarding
+- **Guided Studio Wizard:** 4-step progressive configurator (**Vessel & Smart Lid** $\rightarrow$ **Stratified Foundation** $\rightarrow$ **Live Flora** $\rightarrow$ **Hardscape Details**).
+- **Dual Visualizer Stage:** Procedural 2D cross-section architectural cutaway ([`Terrarium2DLayeredView.tsx`](./src/Terrarium2DLayeredView.tsx)) paired with an interactive 3D WebGL showcase with orbit controls and ultrasonic mist particles ([`Terrarium3DShowcase.tsx`](./src/Terrarium3DShowcase.tsx)).
+- **Curated Signature Editions:** Ready-to-ship 1-of-1 vivariums with high-resolution photography, technical specs, and one-click cart additions.
+- **Integrated Smart Climate Lid:** Circadian PWM lighting, active ventilation fan, and ultrasonic atomization manifold standard with every order.
+- **Tamper-Resistant Pricing & Order Engine:** Authoritative server-style catalog recalculation against master SKUs before checkout.
+- **5-Stage Living Assembly Tracker:** Tracks living vivariums through Andrew's actual workshop process (`BLUEPRINT_RECEIVED` $\rightarrow$ `CIRCUIT_SOLDERING` $\rightarrow$ `PLANTING` $\rightarrow$ `QUARANTINE` $\rightarrow$ `SHIPPED`).
+- **Zero-Asset Web Audio:** Procedurally synthesized organic sound effects (pop sweeps, sand crunches, ultrasonic mist hiss) with zero audio file downloads.
 
-For a complete breakdown of the modular file structure, component hierarchy, SVG coordinate math, and instructions on adding new plants, vessels, or hardware modules, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+---
+
+## 🗂️ Architecture & Onboarding
+
+For details on the modular architecture, data flows, and technical subsystems, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
 ```text
 src/
-├── TerrariumBuilder.tsx         # Top-level state orchestrator
-├── types/terrarium.ts           # Shared TypeScript interfaces & types
-├── data/                        # Vessels, substrates, flora/hardscape SVG catalogs, hardware & presets
-├── utils/                       # Web Audio synthesizer & BOM pricing / JSON blueprint serializer
-└── components/                  # Modular UI components (TopNavBar, TerrariumCanvas, BuilderDrawer, BlueprintModal, tabs/)
+├── App.tsx                     # Main store, client router & Studio Wizard
+├── Terrarium2DLayeredView.tsx  # Procedural 2D cross-section SVG stage
+├── Terrarium3DShowcase.tsx     # Three.js WebGL 3D showcase
+├── context/                    # AuthContext & CartContext with local persistence
+├── components/                 # CartDrawer, AuthModal, StripeCheckoutModal, OrderTrackerModal
+├── data/                       # Authoritative vessels, flora, substrates & hardware catalogs
+└── utils/                      # Client router, Stripe checkout engine & Web Audio synthesizer
 ```
+
+---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repository
 ```bash
+# Clone the repository
 git clone https://github.com/vickyadebona/terrascape.git
 cd terrascape
-```
 
-### 2. Install dependencies & start dev server
-```bash
+# Install dependencies & start Vite dev server
 npm install
 npm run dev
 ```

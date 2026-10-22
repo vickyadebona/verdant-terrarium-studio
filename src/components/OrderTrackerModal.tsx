@@ -1,66 +1,91 @@
 import React, { useState } from 'react';
 import {
   X,
-  CheckCircle2,
-  Wrench,
-  Cpu,
-  Layers,
-  ThermometerSnowflake,
-  Truck,
-  Copy,
-  Check,
-  Download,
-  FileCode2,
-  ChevronRight,
   Sparkles,
+  CheckCircle2,
+  Clock,
+  Wrench,
+  Sprout,
+  ShieldAlert,
+  Truck,
+  Check,
+  ChevronRight,
+  FileCode2,
+  Copy,
+  Download,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { OrderStage } from '../types/terrarium';
 
-const STAGES: Array<{
+interface StageMeta {
   key: OrderStage;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
   description: string;
-}> = [
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const STAGES: StageMeta[] = [
   {
     key: 'BLUEPRINT_RECEIVED',
-    label: 'Blueprint Queued',
-    icon: FileCode2,
-    description: 'BOM and coordinate specs validated. Assembly tray assigned in studio.',
+    label: 'Blueprint Received',
+    description: 'BOM pricing validated & serialized CAD coordinates locked.',
+    icon: Clock,
   },
   {
     key: 'CIRCUIT_SOLDERING',
-    label: 'Circuits Soldered',
-    icon: Cpu,
-    description: 'Andrew soldering PWM circadian LED ring and ultrasonic piezo misting manifold.',
+    label: 'Circuit Soldering',
+    description: 'Andrew solders PWM circadian LED & ultrasonic piezo mist circuit.',
+    icon: Wrench,
   },
   {
     key: 'PLANTING',
-    label: 'Planted & Contoured',
-    icon: Layers,
-    description: 'Substrates graded to wave slope; live specimens anchored and rooted.',
+    label: 'Soil & Planting',
+    description: 'Substrates stratified & live specimens rooted.',
+    icon: Sprout,
   },
   {
     key: 'QUARANTINE',
-    label: '72h Micro-Climate',
-    icon: ThermometerSnowflake,
-    description: 'Closed-loop humidity cycling and circadian light acclimation test.',
+    label: '7-Day Quarantine',
+    description: 'Moisture seal, fungus gnat check & springtail colony balance.',
+    icon: ShieldAlert,
   },
   {
     key: 'SHIPPED',
-    label: 'Shipped / Ready',
+    label: 'Dispatched & Delivered',
+    description: 'Hand-delivered via climate courier or shipped in thermal insulated crate.',
     icon: Truck,
-    description: 'Crated in insulated shock-proof packaging with temperature pack.',
   },
 ];
 
 export const OrderTrackerModal: React.FC = () => {
-  const { isTrackerModalOpen, closeTrackerModal, activeOrder, orders, advanceOrderStage } = useCart();
-  const [copiedPayload, setCopiedPayload] = useState(false);
+  const { isTrackerModalOpen, closeTrackerModal, orders, advanceOrderStage } = useCart();
   const [showRawJson, setShowRawJson] = useState(false);
+  const [copiedPayload, setCopiedPayload] = useState(false);
 
-  if (!isTrackerModalOpen || !activeOrder) return null;
+  if (!isTrackerModalOpen) return null;
+
+  // Use the newest order, or empty placeholder if none exists
+  const activeOrder = orders[0] || null;
+
+  if (!activeOrder) {
+    return (
+      <div
+        className="fixed inset-0 z-50 bg-[#18392b]/40 backdrop-blur-sm flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl max-w-md w-full p-6 text-center text-[#18392b] shadow-2xl">
+          <p className="text-sm text-[#546358] mb-4">No active studio orders found yet.</p>
+          <button
+            onClick={closeTrackerModal}
+            className="px-4 py-2 bg-[#18392b] hover:bg-[#11291f] text-white rounded-xl text-xs font-medium cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const currentStageIndex = STAGES.findIndex((s) => s.key === activeOrder.currentStage);
 
@@ -84,34 +109,34 @@ export const OrderTrackerModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#18392b]/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-stone-900 border border-stone-700/80 rounded-2xl max-w-3xl w-full max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl">
+      <div className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl max-w-3xl w-full max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl text-[#18392b]">
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-stone-800 bg-stone-950 flex items-center justify-between shrink-0">
+        <div className="px-5 py-4 border-b border-[rgba(24,57,43,0.14)] bg-[#f0ede3] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <div className="w-9 h-9 rounded-xl bg-[rgba(184,194,161,0.35)] border border-[rgba(24,57,43,0.16)] flex items-center justify-center text-[#18392b]">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-semibold text-stone-100">
+                <h2 className="text-base sm:text-lg font-serif font-normal text-[#18392b]">
                   Workshop Assembly Tracker
                 </h2>
-                <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/80">
+                <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[rgba(184,194,161,0.3)] text-[#18392b] border border-[rgba(24,57,43,0.18)]">
                   #{activeOrder.orderId}
                 </span>
               </div>
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-[#546358]">
                 Live multi-stage build progress from Andrew&apos;s workbench
               </p>
             </div>
           </div>
           <button
             onClick={closeTrackerModal}
-            className="p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-stone-100 transition cursor-pointer"
+            className="p-2 rounded-xl text-[#546358] hover:text-[#18392b] hover:bg-[rgba(24,57,43,0.06)] transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -120,21 +145,21 @@ export const OrderTrackerModal: React.FC = () => {
         {/* Modal Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 text-xs sm:text-sm">
           {/* Order Banner & Delivery ETA */}
-          <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="bg-[rgba(184,194,161,0.25)] border border-[rgba(24,57,43,0.16)] rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold text-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-[#18392b]" />
+                <span className="font-semibold text-[#18392b]">
                   Payment Captured &amp; Blueprint Verified via Stripe
                 </span>
               </div>
-              <p className="text-xs text-emerald-300/80">
-                Tracking code: <span className="font-mono text-emerald-200">{activeOrder.trackingNumber}</span> ({activeOrder.carrier})
+              <p className="text-xs text-[#546358]">
+                Tracking code: <span className="font-mono text-[#18392b] font-medium">{activeOrder.trackingNumber}</span> ({activeOrder.carrier})
               </p>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-[11px] text-stone-400 uppercase tracking-wider">Est. Completion</div>
-              <div className="text-sm font-bold text-emerald-300 font-mono">
+              <div className="text-[11px] text-[#546358] uppercase tracking-wider font-sans">Est. Completion</div>
+              <div className="text-sm font-bold text-[#18392b] font-mono">
                 {activeOrder.estimatedDeliveryDate}
               </div>
             </div>
@@ -143,15 +168,15 @@ export const OrderTrackerModal: React.FC = () => {
           {/* 5-Stage Visual Progress Bar */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#546358] font-sans">
                 Studio Assembly Stages
               </label>
               {currentStageIndex < STAGES.length - 1 && (
                 <button
                   onClick={() => advanceOrderStage(activeOrder.orderId)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-300 text-xs border border-emerald-700/60 font-medium transition cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-[#f0ede3] hover:bg-[#eae5d8] text-[#18392b] text-xs border border-[rgba(24,57,43,0.18)] font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
                 >
-                  <Wrench className="w-3.5 h-3.5" />
+                  <Wrench className="w-3.5 h-3.5 text-[#657a4e]" />
                   <span>Simulate Next Stage (Andrew&apos;s Update)</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -170,33 +195,33 @@ export const OrderTrackerModal: React.FC = () => {
                     key={step.key}
                     className={`p-3 rounded-xl border flex flex-col justify-between transition ${
                       isCurrent
-                        ? 'bg-emerald-950/70 border-emerald-500 text-emerald-200 ring-1 ring-emerald-500/50'
+                        ? 'bg-[rgba(184,194,161,0.35)] border-[#18392b] text-[#18392b] ring-1 ring-[#18392b]'
                         : isPassed
-                        ? 'bg-stone-900/90 border-emerald-900/60 text-stone-300'
-                        : 'bg-stone-950/40 border-stone-800 text-stone-600'
+                        ? 'bg-[#f0ede3] border-[rgba(24,57,43,0.18)] text-[#18392b]'
+                        : 'bg-[#f8f5ee] border-[rgba(24,57,43,0.1)] text-[#546358]/60'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div
                         className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${
                           isCurrent
-                            ? 'bg-emerald-500 text-stone-950 font-bold animate-pulse'
+                            ? 'bg-[#18392b] text-white font-bold'
                             : isPassed
-                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-700'
-                            : 'bg-stone-900 text-stone-600 border border-stone-800'
+                            ? 'bg-[rgba(184,194,161,0.5)] text-[#18392b] font-medium border border-[rgba(24,57,43,0.18)]'
+                            : 'bg-[#f0ede3] text-[#546358] border border-[rgba(24,57,43,0.12)]'
                         }`}
                       >
                         {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                       </div>
                       <Icon
                         className={`w-4 h-4 ${
-                          isCurrent ? 'text-emerald-400' : isPassed ? 'text-emerald-500/80' : 'text-stone-700'
+                          isCurrent ? 'text-[#18392b]' : isPassed ? 'text-[#657a4e]' : 'text-[#546358]/50'
                         }`}
                       />
                     </div>
                     <div>
                       <div className="font-semibold text-xs leading-tight mb-1">{step.label}</div>
-                      <div className="text-[10px] text-stone-400 line-clamp-2 leading-relaxed">
+                      <div className="text-[10px] text-[#546358] line-clamp-2 leading-relaxed">
                         {step.description}
                       </div>
                     </div>
@@ -208,22 +233,22 @@ export const OrderTrackerModal: React.FC = () => {
 
           {/* Live Workshop Technician Activity Log */}
           <div className="space-y-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-stone-400 block">
+            <label className="text-xs font-semibold uppercase tracking-wider text-[#546358] block font-sans">
               Workbench Activity Log
             </label>
-            <div className="space-y-2.5 bg-stone-950/80 border border-stone-800 rounded-xl p-4 max-h-52 overflow-y-auto">
+            <div className="space-y-2.5 bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] rounded-xl p-4 max-h-52 overflow-y-auto">
               {activeOrder.stageHistory.map((entry, idx) => (
-                <div key={idx} className="flex items-start gap-3 text-xs border-b border-stone-800/60 pb-2.5 last:border-0 last:pb-0">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                <div key={idx} className="flex items-start gap-3 text-xs border-b border-[rgba(24,57,43,0.1)] pb-2.5 last:border-0 last:pb-0">
+                  <div className="w-2 h-2 rounded-full bg-[#18392b] mt-1.5 shrink-0" />
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-stone-200">{entry.title}</span>
-                      <span className="text-[10px] font-mono text-stone-500">
+                      <span className="font-semibold text-[#18392b]">{entry.title}</span>
+                      <span className="text-[10px] font-mono text-[#546358]">
                         {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-stone-400 leading-relaxed text-[11px]">{entry.notes}</p>
-                    <p className="text-[10px] text-emerald-400/80 font-mono">Logged by: {entry.technician}</p>
+                    <p className="text-[#546358] leading-relaxed text-[11px]">{entry.notes}</p>
+                    <p className="text-[10px] text-[#657a4e] font-mono">Logged by: {entry.technician}</p>
                   </div>
                 </div>
               ))}
@@ -232,55 +257,55 @@ export const OrderTrackerModal: React.FC = () => {
 
           {/* Order Details & Blueprint Payload */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-stone-950/70 border border-stone-800 rounded-xl p-4 space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 block mb-1">
+            <div className="bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] rounded-xl p-4 space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#546358] block mb-1 font-sans">
                 Delivery &amp; Customer Specs
               </span>
-              <div className="text-xs text-stone-300 space-y-1">
+              <div className="text-xs text-[#18392b] space-y-1">
                 <div>
-                  <span className="text-stone-500">Recipient:</span> {activeOrder.customerName}
+                  <span className="text-[#546358]">Recipient:</span> {activeOrder.customerName}
                 </div>
                 <div>
-                  <span className="text-stone-500">Email:</span> {activeOrder.customerEmail}
+                  <span className="text-[#546358]">Email:</span> {activeOrder.customerEmail}
                 </div>
                 <div>
-                  <span className="text-stone-500">Address:</span> {activeOrder.shippingAddress.street}, {activeOrder.shippingAddress.city}, {activeOrder.shippingAddress.state} {activeOrder.shippingAddress.zip}
+                  <span className="text-[#546358]">Address:</span> {activeOrder.shippingAddress.street}, {activeOrder.shippingAddress.city}, {activeOrder.shippingAddress.state} {activeOrder.shippingAddress.zip}
                 </div>
                 <div>
-                  <span className="text-stone-500">Fulfillment:</span> {activeOrder.deliveryOptionTitle}
+                  <span className="text-[#546358]">Fulfillment:</span> {activeOrder.deliveryOptionTitle}
                 </div>
                 {activeOrder.deliveryNotes && (
-                  <div className="pt-1 text-[11px] text-stone-400 italic">
+                  <div className="pt-1 text-[11px] text-[#546358] italic">
                     &ldquo;{activeOrder.deliveryNotes}&rdquo;
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="bg-stone-950/70 border border-stone-800 rounded-xl p-4 space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 block mb-1">
+            <div className="bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] rounded-xl p-4 space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#546358] block mb-1 font-sans">
                 Payment &amp; BOM Summary
               </span>
-              <div className="text-xs text-stone-300 space-y-1">
+              <div className="text-xs text-[#18392b] space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Items Subtotal:</span>
+                  <span className="text-[#546358]">Items Subtotal:</span>
                   <span className="font-mono">${activeOrder.subtotal}.00</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Shipping &amp; Delivery:</span>
+                  <span className="text-[#546358]">Shipping &amp; Delivery:</span>
                   <span className="font-mono">
                     {activeOrder.shippingFee === 0 ? 'Complimentary ($0)' : `$${activeOrder.shippingFee}.00`}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Sales Tax (CA 9.5%):</span>
+                  <span className="text-[#546358]">Sales Tax (CA 9.5%):</span>
                   <span className="font-mono">${activeOrder.taxAmount}.00</span>
                 </div>
-                <div className="flex justify-between font-bold text-emerald-300 pt-1 border-t border-stone-800">
+                <div className="flex justify-between font-bold text-[#18392b] pt-1 border-t border-[rgba(24,57,43,0.14)]">
                   <span>Total Paid (Stripe):</span>
                   <span className="font-mono">${activeOrder.total}.00 USD</span>
                 </div>
-                <div className="text-[10px] text-stone-500 font-mono pt-0.5">
+                <div className="text-[10px] text-[#546358] font-mono pt-0.5">
                   Method: {activeOrder.paymentMethodDetails.brand} (•••• {activeOrder.paymentMethodDetails.last4})
                 </div>
               </div>
@@ -292,22 +317,22 @@ export const OrderTrackerModal: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <button
                 onClick={() => setShowRawJson((prev) => !prev)}
-                className="text-xs font-mono uppercase text-stone-400 hover:text-stone-200 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-mono uppercase text-[#546358] hover:text-[#18392b] flex items-center gap-1 cursor-pointer"
               >
-                <FileCode2 className="w-3.5 h-3.5 text-emerald-400" />
+                <FileCode2 className="w-3.5 h-3.5 text-[#657a4e]" />
                 <span>{showRawJson ? 'Hide Raw Stripe & Blueprint JSON' : 'Inspect Raw Stripe & Blueprint JSON'}</span>
               </button>
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyOrderPayload}
-                  className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-xs text-stone-200 flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded bg-[#f0ede3] hover:bg-[#eae5d8] border border-[rgba(24,57,43,0.14)] text-xs text-[#18392b] flex items-center gap-1 cursor-pointer"
                 >
-                  {copiedPayload ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedPayload ? <Check className="w-3.5 h-3.5 text-[#18392b]" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedPayload ? 'Copied' : 'Copy'}
                 </button>
                 <button
                   onClick={downloadOrderJson}
-                  className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-xs text-stone-200 flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded bg-[#f0ede3] hover:bg-[#eae5d8] border border-[rgba(24,57,43,0.14)] text-xs text-[#18392b] flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download .json</span>
@@ -315,7 +340,7 @@ export const OrderTrackerModal: React.FC = () => {
               </div>
             </div>
             {showRawJson && (
-              <pre className="bg-black/90 border border-stone-800 rounded-xl p-3 text-[10px] font-mono text-emerald-300/90 max-h-44 overflow-y-auto">
+              <pre className="bg-[#18392b] border border-[rgba(24,57,43,0.2)] text-[#b8c2a1] rounded-xl p-3 text-[10px] font-mono max-h-44 overflow-y-auto">
                 {JSON.stringify(activeOrder, null, 2)}
               </pre>
             )}
@@ -323,8 +348,8 @@ export const OrderTrackerModal: React.FC = () => {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3.5 bg-stone-950 border-t border-stone-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-stone-400">
+        <div className="px-5 py-3.5 bg-[#f0ede3] border-t border-[rgba(24,57,43,0.14)] flex items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-[#546358]">
             {orders.length > 1 && (
               <span>
                 Viewing order 1 of {orders.length} in local history.
@@ -333,7 +358,7 @@ export const OrderTrackerModal: React.FC = () => {
           </div>
           <button
             onClick={closeTrackerModal}
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs sm:text-sm transition cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-[#18392b] hover:bg-[#11291f] text-white font-medium text-xs sm:text-sm transition cursor-pointer shadow-sm"
           >
             Done / Return to Studio
           </button>

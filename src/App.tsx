@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Terrarium3DShowcase from "./Terrarium3DShowcase";
 import Terrarium2DLayeredView, { type SoilLayerSpec } from "./Terrarium2DLayeredView";
 import { useCart } from "./context/CartContext";
@@ -8,22 +8,16 @@ import { StripeCheckoutModal } from "./components/StripeCheckoutModal";
 import { OrderTrackerModal } from "./components/OrderTrackerModal";
 import { AuthModal } from "./components/AuthModal";
 import type { User as UserProfile } from "./types/auth";
-
 import { EditionDetailPage } from "./components/EditionDetailPage";
+import {
+  parsePath,
+  resolvePath,
+  type RouteInfo,
+  type Page,
+  type EditionKey,
+} from "./utils/router";
 
-export type Page =
-  | "home"
-  | "design"
-  | "build"
-  | "edition"
-  | "terracare"
-  | "about"
-  | "faq"
-  | "account"
-  | "checkout"
-  | "payments";
-
-export type EditionKey = "cloud_forest" | "fern_study" | "moss_garden";
+export type { Page, EditionKey };
 
 type Category = "Vessel" | "Foundation" | "Flora" | "Details";
 
@@ -704,19 +698,130 @@ function LeafMark() {
 
 export type ChosenOption = Option & { quantity: number };
 
+const BUILDER_SELECTED_STORAGE = "terrascape_builder_selected_v1";
+const BUILDER_SOIL_STORAGE = "terrascape_builder_soil_v1";
+const BUILDER_CATEGORY_STORAGE = "terrascape_builder_category_v1";
+
+function getStoredBuilderSelected(): string[] {
+  try {
+    const raw = sessionStorage.getItem(BUILDER_SELECTED_STORAGE);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getStoredBuilderSoil(): SoilLayerSpec[] {
+  try {
+    const raw = sessionStorage.getItem(BUILDER_SOIL_STORAGE);
+    return raw ? JSON.parse(raw) : DEFAULT_SOIL_RECIPES.forest;
+  } catch {
+    return DEFAULT_SOIL_RECIPES.forest;
+  }
+}
+
+function getStoredBuilderCategory(): Category {
+  try {
+    const raw = sessionStorage.getItem(BUILDER_CATEGORY_STORAGE);
+    if (raw === "Vessel" || raw === "Foundation" || raw === "Flora" || raw === "Details") {
+      return raw;
+    }
+  } catch {}
+  return "Vessel";
+}
+
 export function App() {
-  const [page, setPage] = useState<Page>("home");
+  const [route, setRoute] = useState<RouteInfo>(() => {
+    if (typeof window === "undefined") {
+      return { page: "home", path: "/collections" };
+    }
+    const current = parsePath(window.location.pathname);
+    if (window.location.pathname === "/" || current.redirectFromRoot) {
+      window.history.replaceState(null, "", "/collections");
+    }
+    return current;
+  });
+
+  const page = route.page;
   const { user: currentUser, signOut } = useAuth();
-  const [selectedEdition, setSelectedEdition] = useState<EditionKey>("cloud_forest");
-  const [activeCategory, setActiveCategory] = useState<Category>("Vessel");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [soilLayers, setSoilLayers] = useState<SoilLayerSpec[]>(DEFAULT_SOIL_RECIPES.forest);
+  const [selectedEdition, setSelectedEdition] = useState<EditionKey>(
+    () => route.editionId || "cloud_forest"
+  );
+  const [activeCategory, setActiveCategory] = useState<Category>(getStoredBuilderCategory);
+  const [selected, setSelected] = useState<string[]>(getStoredBuilderSelected);
+  const [soilLayers, setSoilLayers] = useState<SoilLayerSpec[]>(getStoredBuilderSoil);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Sync builder selections to session storage to persist across navigations/refreshes
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BUILDER_SELECTED_STORAGE, JSON.stringify(selected));
+    } catch {}
+  }, [selected]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BUILDER_SOIL_STORAGE, JSON.stringify(soilLayers));
+    } catch {}
+  }, [soilLayers]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BUILDER_CATEGORY_STORAGE, activeCategory);
+    } catch {}
+  }, [activeCategory]);
+
+  // Listen to browser Back and Forward button events
+  useEffect(() => {
+    const handlePopState = () => {
+      const current = parsePath(window.location.pathname);
+      if (window.location.pathname === "/" || current.redirectFromRoot) {
+        window.history.replaceState(null, "", "/collections");
+      }
+      setRoute(current);
+      if (current.editionId) {
+        setSelectedEdition(current.editionId);
+      }
+      setMenuOpen(false);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const navigate = (
+    next: Page | string,
+    options?: { replace?: boolean; editionId?: EditionKey }
+  ) => {
+    let targetEditionId = options?.editionId;
+    if (next === "edition" && !targetEditionId) {
+      targetEditionId = selectedEdition;
+    }
+
+    const { path, redirectFromRoot } = resolvePath(next, { editionId: targetEditionId });
+    const nextRoute = parsePath(path);
+    if (targetEditionId) {
+      nextRoute.editionId = targetEditionId;
+      setSelectedEdition(targetEditionId);
+    } else if (nextRoute.editionId) {
+      setSelectedEdition(nextRoute.editionId);
+    }
+
+    if (redirectFromRoot || options?.replace) {
+      window.history.replaceState(null, "", nextRoute.path);
+    } else if (window.location.pathname !== nextRoute.path) {
+      window.history.pushState(null, "", nextRoute.path);
+    }
+
+    setRoute(nextRoute);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  };
+
   const handleLogout = async () => {
     await signOut();
-    navigate("home");
+    navigate("/collections");
   };
 
   const chosen: ChosenOption[] = useMemo(() => {
@@ -738,15 +843,9 @@ export function App() {
     [chosen]
   );
 
-  const navigate = (next: Page) => {
-    setPage(next);
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  };
-
   const openEdition = (key: EditionKey) => {
     setSelectedEdition(key);
-    navigate("edition");
+    navigate(`/editions/${key}`, { editionId: key });
   };
 
   const loadSignaturePreset = (presetKey: keyof typeof SIGNATURE_PRESETS) => {
@@ -755,7 +854,7 @@ export function App() {
     setSelected(preset.selected);
     setSoilLayers(DEFAULT_SOIL_RECIPES[preset.recipeKey].map((l) => ({ ...l })));
     setActiveCategory("Vessel");
-    navigate("build");
+    navigate("/studio");
   };
 
   const toggleOption = (option: Option) => {
@@ -799,41 +898,68 @@ export function App() {
       openCart();
     } else {
       setAuthMode("login");
-      navigate("account");
+      navigate("/account");
     }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    e.preventDefault();
+    navigate(path);
   };
 
   return (
     <div className="app-shell">
       <header className="site-header">
-        <button className="brand" onClick={() => navigate("home")} aria-label="TerraScape home">
+        <a
+          href="/"
+          className="brand"
+          onClick={(e) => handleLinkClick(e, "/")}
+          aria-label="TerraScape home"
+        >
           <LeafMark />
           <span>
             Terra<span className="brand-scape">Scape</span>
           </span>
-        </button>
+        </a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Main navigation">
-          <button className={page === "home" ? "active" : ""} onClick={() => navigate("home")}>
+          <a
+            href="/collections"
+            className={page === "home" ? "active" : ""}
+            onClick={(e) => handleLinkClick(e, "/collections")}
+          >
             Collection
-          </button>
-          <button
+          </a>
+          <a
+            href="/our-story"
             className={page === "about" || page === "design" ? "active" : ""}
-            onClick={() => navigate("about")}
+            onClick={(e) => handleLinkClick(e, "/our-story")}
           >
             Our Story
-          </button>
-          <button className={page === "build" ? "active" : ""} onClick={() => navigate("build")}>
+          </a>
+          <a
+            href="/studio"
+            className={page === "build" ? "active" : ""}
+            onClick={(e) => handleLinkClick(e, "/studio")}
+          >
             Studio
-          </button>
-          <button
+          </a>
+          <a
+            href="/terracare"
             className={page === "terracare" ? "active" : ""}
-            onClick={() => navigate("terracare")}
+            onClick={(e) => handleLinkClick(e, "/terracare")}
           >
             TerraCare
-          </button>
-          <button className={page === "faq" ? "active" : ""} onClick={() => navigate("faq")}>
+          </a>
+          <a
+            href="/faq"
+            className={page === "faq" ? "active" : ""}
+            onClick={(e) => handleLinkClick(e, "/faq")}
+          >
             FAQ
-          </button>
+          </a>
         </nav>
         <div className="header-actions">
           {orders.length > 0 && (
@@ -858,13 +984,14 @@ export function App() {
 
           {currentUser ? (
             <>
-              <button
+              <a
+                href="/account"
                 className="text-button account-link"
-                onClick={() => navigate("account")}
+                onClick={(e) => handleLinkClick(e, "/account")}
                 title={`Signed in as ${currentUser.name}`}
               >
                 Account
-              </button>
+              </a>
               <button
                 className="bag-button"
                 onClick={openCart}
@@ -878,7 +1005,7 @@ export function App() {
               className="nav-cta-button"
               onClick={() => {
                 setAuthMode("login");
-                navigate("account");
+                navigate("/account");
               }}
               title="Sign in or create a TerraScape account"
             >
@@ -964,11 +1091,36 @@ export function App() {
           </div>
           <div>
             <strong>Explore</strong>
-            <button onClick={() => navigate("home")}>Collection</button>
-            <button onClick={() => navigate("about")}>Our Story</button>
-            <button onClick={() => navigate("build")}>Studio</button>
-            <button onClick={() => navigate("terracare")}>TerraCare</button>
-            <button onClick={() => navigate("faq")}>FAQ</button>
+            <a
+              href="/collections"
+              onClick={(e) => handleLinkClick(e, "/collections")}
+            >
+              Collection
+            </a>
+            <a
+              href="/our-story"
+              onClick={(e) => handleLinkClick(e, "/our-story")}
+            >
+              Our Story
+            </a>
+            <a
+              href="/studio"
+              onClick={(e) => handleLinkClick(e, "/studio")}
+            >
+              Studio
+            </a>
+            <a
+              href="/terracare"
+              onClick={(e) => handleLinkClick(e, "/terracare")}
+            >
+              TerraCare
+            </a>
+            <a
+              href="/faq"
+              onClick={(e) => handleLinkClick(e, "/faq")}
+            >
+              FAQ
+            </a>
           </div>
           <div className="newsletter">
             <strong>Notes from the greenhouse</strong>
@@ -1266,6 +1418,7 @@ function Builder({
   totalElements,
   subtotal,
   navigate,
+  allowMultiQuantityFlora: controlledAllowMultiQuantityFlora,
 }: {
   activeCategory: Category;
   setActiveCategory: (value: Category) => void;
@@ -1277,8 +1430,13 @@ function Builder({
   totalElements: number;
   subtotal: number;
   navigate: (page: Page) => void;
+  allowMultiQuantityFlora?: boolean;
 }) {
   const [soilDrawerOpen, setSoilDrawerOpen] = useState(false);
+  // Feature toggle: By default FALSE (multi-select flora with NO duplicate quantities).
+  // Can be toggled on/off internally or passed via prop.
+  const [internalAllowMultiQuantityFlora, setInternalAllowMultiQuantityFlora] = useState(false);
+  const allowMultiQuantityFlora = controlledAllowMultiQuantityFlora ?? internalAllowMultiQuantityFlora;
 
   const visible = options.filter((option) => option.category === activeCategory);
   const step = categories.indexOf(activeCategory) + 1;
@@ -1291,6 +1449,17 @@ function Builder({
 
   return (
     <section className="builder">
+      {/* Hidden toggle for 0-5 multi-quantity flora feature (saved for future reactivation) */}
+      <button
+        type="button"
+        style={{ display: "none" }}
+        data-testid="toggle-flora-multi-qty"
+        aria-hidden="true"
+        onClick={() => setInternalAllowMultiQuantityFlora((prev) => !prev)}
+      >
+        Toggle Flora 0-5 Quantities
+      </button>
+
       <div className="builder-preview">
         <div className="builder-heading">
           <div>
@@ -1332,7 +1501,9 @@ function Builder({
                 {activeCategory === "Vessel" || activeCategory === "Foundation"
                   ? "Single choice · Select 1"
                   : activeCategory === "Flora"
-                    ? "Multi-select · Multiple quantities"
+                    ? (allowMultiQuantityFlora
+                        ? "Multi-select · Multiple quantities"
+                        : "Multi-select · Choose any")
                     : "Multi-select · Choose any"}
               </span>
             </div>
@@ -1340,7 +1511,9 @@ function Builder({
           </div>
           <p className="option-instruction">
             {activeCategory === "Flora"
-              ? "Select one or more plants below, and use the + / − controls to add multiple quantities of each."
+              ? (allowMultiQuantityFlora
+                  ? "Select one or more plants below, and use the + / − controls to add multiple quantities of each."
+                  : "Select one or more plants below to populate your living world.")
               : activeCategory === "Details"
                 ? "Select one or more natural accents to sculpt your terrarium hardscape."
                 : "Select one option below to continue."}
@@ -1373,7 +1546,7 @@ function Builder({
             const isSelected = qty > 0;
             const isSingleSelect =
               option.category === "Vessel" || option.category === "Foundation";
-            const isMultiQty = option.category === "Flora";
+            const isMultiQty = allowMultiQuantityFlora && option.category === "Flora";
 
             if (isMultiQty) {
               return (

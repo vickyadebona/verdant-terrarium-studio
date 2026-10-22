@@ -5,20 +5,22 @@
 - **Hardware & Botanical Partner:** Andrew Hung (Mechanical Engineering, Custom PCB/Lighting & Ultrasonic Misting Circuits)
 
 ## Project Overview
-TerraScape is an interactive 2D SVG product configurator and e-commerce platform for custom-built botanical terrariums equipped with custom-engineered micro-climate electronics (PWM circadian LED rings, ultrasonic piezo misting manifolds, and closed-loop I2C humidity controllers).
+TerraScape is an e-commerce platform and guided product configurator for custom-built botanical terrariums equipped with custom-engineered microclimate electronics (PWM circadian LED rings, active aeration fans, and ultrasonic piezo misting manifolds).
 
-## Current Implementation Status (Completed)
-- **Phase 1 Complete (`src/TerrariumBuilder.tsx`):**
-  - Interactive React + TypeScript + Tailwind CSS configurator with 6 glass vessels, 6 dynamic wave-contoured substrate layers, 16+ botanical/hardscape SVG items, and 4 smart hardware circuit modules.
-  - Mobile-friendly split-screen layout (`100dvh`) with a collapsible bottom sheet drawer and accurate SVG matrix coordinate dragging (`getScreenCTM`).
-  - Synthesized Web Audio API sound effects (zero external audio assets).
-  - Live Bill-of-Materials (BOM) pricing engine and a Blueprint Spec Sheet / Checkout modal that serializes the exact coordinates, substrates, and hardware SKUs into JSON.
+## Current Implementation Status
+- **Guided Studio Wizard & Storefront:**
+  - 4-step guided configurator (`Vessel` -> `Foundation` -> `Flora` -> `Details`) in `src/App.tsx`.
+  - Step 3 Flora selection supports multi-select with no duplicate quantities by default, with an internal toggle component for 0-5 multiple quantities.
+  - Dual visualizer: Architectural 2D procedural cross-section (`src/Terrarium2DLayeredView.tsx`) and interactive Three.js WebGL 3D showcase with OrbitControls and mist particles (`src/Terrarium3DShowcase.tsx`).
+  - Warm parchment & cream botanical design system (`#18392b`, `#f8f5ee`, `#f0ede3`, `#657a4e`, `#b8c2a1`).
+  - Curated 1-of-1 Signature Editions with dedicated showcase pages (`src/components/EditionDetailPage.tsx`).
+  - Slide-over Cart Drawer (`src/components/CartDrawer.tsx`), Auth Modal (`src/components/AuthModal.tsx`), and In-App Stripe Payment Modal (`src/components/StripeCheckoutModal.tsx`).
+  - 5-stage living vivarium assembly & quarantine tracker (`BLUEPRINT_RECEIVED` -> `CIRCUIT_SOLDERING` -> `PLANTING` -> `QUARANTINE` -> `SHIPPED`).
+  - Synthesized Web Audio API procedural sound effects (`src/utils/soundEffects.ts`).
 
-## Upcoming Engineering Roadmap (For Antigravity Agent)
-- **Phase 2 (Brand & Showcase Gallery):**
-  - Add a multi-page or tabbed view featuring **"Andrew's Signature Builds"** (ready-to-ship 1-of-1 terrariums with photography, circuit schematics, and a *"Load in Studio"* button).
-  - Add an interactive **"Inside the Engineering"** section explaining the PWM lighting and ultrasonic misting hardware.
-- **Phase 3 (Full-Stack E-Commerce, Database & Shipping):**
-  - Migrate or connect to Next.js App Router / Payload CMS + PostgreSQL (Prisma/Drizzle).
-  - Implement server-side BOM price validation and Stripe Checkout webhook integration (`checkout.session.completed`).
-  - Build a custom multi-stage Order & Assembly Tracker (`BLUEPRINT_RECEIVED` -> `CIRCUIT_SOLDERING` -> `PLANTING` -> `QUARANTINE` -> `SHIPPED` via Shippo/EasyPost API).
+## Upcoming Engineering Roadmap
+- **Phase 3 (Full-Stack E-Commerce & Database):**
+  - Headless Next.js REST API service with Prisma ORM + PostgreSQL (`src/db/schema.txt`).
+  - HTTP-only secure cookie authentication.
+  - Stripe Hosted Checkout and `checkout.session.completed` webhook listeners.
+  - Andrew Hung's protected `/admin` workbench for CAD blueprint inspection and quarantine logging.

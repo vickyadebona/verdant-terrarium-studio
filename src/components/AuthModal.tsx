@@ -1,68 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Lock,
-  Mail,
-  User as UserIcon,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, closeAuthModal, authModalConfig, signIn, isLoading } = useAuth();
+  const { isAuthModalOpen, authModalConfig, closeAuthModal, signIn } = useAuth();
 
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isAuthModalOpen) {
-        closeAuthModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAuthModalOpen, closeAuthModal]);
-
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isAuthModalOpen) {
-      setErrorMsg(null);
-      setFullName('');
-      setEmail('');
-      setPassword('');
-    }
-  }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
 
-  const handleGoogleSignIn = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
     setErrorMsg(null);
-    const result = await signIn('google');
-    if (!result.ok && result.error) {
-      setErrorMsg(result.error);
+
+    try {
+      if (mode === 'signup') {
+        if (!fullName.trim()) {
+          throw new Error('Please enter your full name.');
+        }
+        const res = await signIn('credentials', {
+          name: fullName.trim(),
+          email: email.trim(),
+          password,
+          isSignUp: true,
+        });
+        if (!res.ok) {
+          throw new Error(res.error || 'Sign up failed');
+        }
+      } else {
+        const res = await signIn('credentials', {
+          email: email.trim(),
+          password,
+        });
+        if (!res.ok) {
+          throw new Error(res.error || 'Sign in failed');
+        }
+      }
+
+      if (authModalConfig?.onAuthenticated) {
+        authModalConfig.onAuthenticated();
+      }
+      closeAuthModal();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      setErrorMsg(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
     setErrorMsg(null);
-
-    const result = await signIn('credentials', {
-      email,
-      password,
-      name: fullName,
-      isSignUp: mode === 'signup',
-    });
-
-    if (!result.ok && result.error) {
-      setErrorMsg(result.error);
+    try {
+      const res = await signIn('google');
+      if (!res.ok) {
+        throw new Error(res.error || 'Google sign-in failed');
+      }
+      if (authModalConfig?.onAuthenticated) {
+        authModalConfig.onAuthenticated();
+      }
+      closeAuthModal();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Google sign-in failed';
+      setErrorMsg(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -83,31 +92,31 @@ export const AuthModal: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#18392b]/40 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-md bg-stone-900 border border-stone-800 rounded-2xl shadow-2xl shadow-emerald-950/40 p-5 sm:p-7 overflow-hidden text-stone-100 max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-md bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl shadow-2xl p-5 sm:p-7 overflow-hidden text-[#18392b] max-h-[92vh] flex flex-col">
         {/* Subtle decorative glow */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#657a4e]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#b8c2a1]/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-[rgba(184,194,161,0.35)] border border-[rgba(24,57,43,0.16)] flex items-center justify-center text-[#18392b] shrink-0 shadow-inner">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold">
+              <p className="text-[11px] uppercase tracking-wider text-[#657a4e] font-semibold">
                 TerraScape Account Required
               </p>
-              <h2 id="auth-modal-title" className="text-lg sm:text-xl font-bold tracking-tight text-stone-100">
+              <h2 id="auth-modal-title" className="text-lg sm:text-xl font-bold tracking-tight text-[#18392b] font-serif">
                 {authModalConfig?.title || 'Save Your Living World'}
               </h2>
             </div>
           </div>
           <button
             onClick={closeAuthModal}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-[#546358] hover:text-[#18392b] hover:bg-[rgba(24,57,43,0.06)] transition cursor-pointer"
             title="Cancel and return to Studio"
           >
             <X className="w-5 h-5" />
@@ -115,7 +124,7 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* Explanation Banner */}
-        <p className="text-xs sm:text-sm text-stone-300 leading-relaxed mb-5">
+        <p className="text-xs sm:text-sm text-[#546358] leading-relaxed mb-5">
           {authModalConfig?.message ||
             'Every TerraScape is an individually serialized living ecosystem. An account is required so Andrew can attach your coordinate blueprint to your workshop build tray and live order tracker.'}
         </p>
@@ -126,7 +135,7 @@ export const AuthModal: React.FC = () => {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl border border-stone-700 bg-stone-800 hover:bg-stone-750 text-stone-100 text-sm font-medium flex items-center justify-center gap-2.5 transition shadow-sm hover:border-stone-600 disabled:opacity-50 cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl border border-[rgba(24,57,43,0.18)] bg-[#f0ede3] hover:bg-[#eae5d8] text-[#18392b] text-sm font-medium flex items-center justify-center gap-2.5 transition shadow-sm disabled:opacity-50 cursor-pointer"
           >
             {/* Google SVG Brand Icon */}
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -153,17 +162,17 @@ export const AuthModal: React.FC = () => {
           {/* Divider */}
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-800" />
+              <div className="w-full border-t border-[rgba(24,57,43,0.14)]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-stone-900 px-2.5 text-stone-400 uppercase tracking-wider text-[10px]">
+              <span className="bg-[#f8f5ee] px-2.5 text-[#546358] uppercase tracking-wider text-[10px] font-semibold">
                 Or with email
               </span>
             </div>
           </div>
 
           {/* Tab Switcher: Create Account vs Sign In */}
-          <div className="grid grid-cols-2 p-1 bg-stone-950/70 rounded-xl border border-stone-800 mb-4">
+          <div className="grid grid-cols-2 p-1 bg-[#f0ede3] rounded-xl border border-[rgba(24,57,43,0.14)] mb-4">
             <button
               type="button"
               onClick={() => {
@@ -172,8 +181,8 @@ export const AuthModal: React.FC = () => {
               }}
               className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
                 mode === 'signup'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[#18392b] text-white shadow-sm'
+                  : 'text-[#546358] hover:text-[#18392b]'
               }`}
             >
               Create Account
@@ -186,8 +195,8 @@ export const AuthModal: React.FC = () => {
               }}
               className={`py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
                 mode === 'signin'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[#18392b] text-white shadow-sm'
+                  : 'text-[#546358] hover:text-[#18392b]'
               }`}
             >
               Sign In
@@ -196,8 +205,8 @@ export const AuthModal: React.FC = () => {
 
           {/* Error Message Alert */}
           {errorMsg && (
-            <div className="mb-4 p-2.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+            <div className="mb-4 p-2.5 rounded-xl bg-[#b96d4b]/15 border border-[#b96d4b]/40 text-[#b96d4b] text-xs flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#b96d4b] shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -206,53 +215,53 @@ export const AuthModal: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs text-stone-300 font-medium mb-1">
+                <label className="block text-xs text-[#18392b] font-medium mb-1">
                   Full Name
                 </label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <UserIcon className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Vicky Adebona"
-                    className="w-full bg-stone-950/80 border border-stone-700/80 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500 transition"
+                    className="w-full bg-white border border-[rgba(24,57,43,0.18)] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#18392b] placeholder:text-[#546358]/60 focus:outline-none focus:border-[#18392b] transition"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[#18392b] font-medium mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@verdantstudio.com"
-                  className="w-full bg-stone-950/80 border border-stone-700/80 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-white border border-[rgba(24,57,43,0.18)] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#18392b] placeholder:text-[#546358]/60 focus:outline-none focus:border-[#18392b] transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[#18392b] font-medium mb-1">
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === 'signup' ? 'At least 8 characters' : 'Enter your password'}
-                  className="w-full bg-stone-950/80 border border-stone-700/80 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-white border border-[rgba(24,57,43,0.18)] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#18392b] placeholder:text-[#546358]/60 focus:outline-none focus:border-[#18392b] transition"
                 />
               </div>
             </div>
@@ -261,7 +270,7 @@ export const AuthModal: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition disabled:opacity-50 cursor-pointer"
+              className="w-full mt-2 py-2.5 px-4 rounded-xl bg-[#18392b] hover:bg-[#11291f] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md transition disabled:opacity-50 cursor-pointer"
             >
               {isLoading ? (
                 <span>Authenticating with Studio...</span>
@@ -279,16 +288,16 @@ export const AuthModal: React.FC = () => {
           </form>
 
           {/* Quick Demo Pre-fill Links for smooth testing */}
-          <div className="mt-4 pt-3 border-t border-stone-800/80 text-[11px] text-stone-400 flex flex-col gap-1.5">
-            <div className="flex items-center gap-1 text-emerald-400/90 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" />
+          <div className="mt-4 pt-3 border-t border-[rgba(24,57,43,0.14)] text-[11px] text-[#546358] flex flex-col gap-1.5">
+            <div className="flex items-center gap-1 text-[#18392b] font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#657a4e]" />
               <span>Studio Testing Shortcuts:</span>
             </div>
-            <div className="flex flex-wrap gap-2 text-stone-300">
+            <div className="flex flex-wrap gap-2 text-[#546358]">
               <button
                 type="button"
                 onClick={() => handleFillDemo('vicky')}
-                className="hover:underline text-emerald-300 cursor-pointer"
+                className="hover:underline text-[#18392b] font-medium cursor-pointer"
               >
                 Sign in as Vicky Adebona (vicky@verdantstudio.com)
               </button>
@@ -296,7 +305,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleFillDemo('andrew')}
-                className="hover:underline text-emerald-300 cursor-pointer"
+                className="hover:underline text-[#18392b] font-medium cursor-pointer"
               >
                 Sign in as Andrew Hung
               </button>
@@ -305,12 +314,12 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* Security & Terms Footer */}
-        <div className="mt-4 pt-3 border-t border-stone-800 flex items-center justify-between text-[11px] text-stone-400">
+        <div className="mt-4 pt-3 border-t border-[rgba(24,57,43,0.14)] flex items-center justify-between text-[11px] text-[#546358]">
           <span className="flex items-center gap-1">
-            <Lock className="w-3 h-3 text-emerald-400" />
+            <Lock className="w-3 h-3 text-[#657a4e]" />
             <span>256-bit Encrypted Session</span>
           </span>
-          <span className="text-stone-400">Phase 3 NextAuth Ready</span>
+          <span>Phase 3 NextAuth Ready</span>
         </div>
       </div>
     </div>

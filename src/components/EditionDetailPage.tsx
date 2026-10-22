@@ -2,7 +2,7 @@ import type { Page, EditionKey, StudioEdition } from "../App";
 
 interface EditionDetailPageProps {
   edition: StudioEdition;
-  navigate: (page: Page) => void;
+  navigate: (page: Page | string) => void;
   loadSignaturePreset: (key: EditionKey) => void;
   addEditionToJar: (edition: StudioEdition) => void;
 }
@@ -34,8 +34,8 @@ export function EditionDetailPage({
       {/* HERO SECTION */}
       <section className="edition-hero">
         <div className="edition-hero-copy">
-          <button
-            type="button"
+          <a
+            href="/collections"
             className="text-arrow-link"
             style={{
               marginBottom: "1.25rem",
@@ -47,11 +47,16 @@ export function EditionDetailPage({
               background: "none",
               border: "none",
               padding: 0,
+              textDecoration: "none",
             }}
-            onClick={() => navigate("home")}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              navigate("/collections");
+            }}
           >
             &larr; Back to Collection
-          </button>
+          </a>
 
           <p className="eyebrow">{edition.edition}</p>
           <h1>{edition.name}</h1>

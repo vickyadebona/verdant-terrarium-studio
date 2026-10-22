@@ -18,6 +18,8 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
 .vercel
 
+# Test artifacts
+playwright-report/
+test-results/
