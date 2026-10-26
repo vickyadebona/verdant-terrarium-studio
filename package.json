@@ -3,10 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "typecheck": "tsc -b",
+    "lint": "oxlint src e2e vite.config.ts playwright.config.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +30,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "happy-dom": "^21.0.4",
+    "oxlint": "1.87.0",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.7.2",
     "vite": "^6.0.0",

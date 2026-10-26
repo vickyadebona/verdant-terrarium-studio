@@ -38,6 +38,8 @@ src/
 
 ## 🚀 Getting Started
 
+Requires **Node 22** (pinned in `.nvmrc`; run `nvm use`).
+
 ```bash
 # Clone the repository
 git clone https://github.com/vickyadebona/terrascape.git
@@ -47,3 +49,15 @@ cd terrascape
 npm install
 npm run dev
 ```
+
+### Checks
+
+These run in GitHub Actions (`.github/workflows/ci.yml`) on every push to `dev`, `staging` and `main`, and on pull requests.
+
+| Command | What it does |
+| --- | --- |
+| `npm run lint` | oxlint (rules in `.oxlintrc.json`) |
+| `npm run typecheck` | TypeScript in `strict` mode, app and tests |
+| `npm test` | Vitest unit and component tests |
+| `npm run build` | Typecheck plus the Vite production build |
+| `npm run test:e2e` | Playwright smoke tests (local only for now) |
