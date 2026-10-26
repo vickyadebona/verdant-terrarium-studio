@@ -36,7 +36,7 @@ const STAGES: StageMeta[] = [
   {
     key: 'CIRCUIT_SOLDERING',
     label: 'Circuit Soldering',
-    description: 'Andrew solders PWM circadian LED & ultrasonic piezo mist circuit.',
+    description: 'Our team solders the PWM circadian LED & ultrasonic piezo mist circuit.',
     icon: Wrench,
   },
   {
@@ -132,7 +132,7 @@ export const OrderTrackerModal: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-[#546358]">
-                Live multi-stage build progress from Andrew&apos;s workbench
+                Live multi-stage build progress from our team&apos;s workbench
               </p>
             </div>
           </div>
@@ -186,7 +186,7 @@ export const OrderTrackerModal: React.FC = () => {
                   className="px-2.5 py-1 rounded-lg bg-[#f0ede3] hover:bg-[#eae5d8] text-[#18392b] text-xs border border-[rgba(24,57,43,0.18)] font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
                 >
                   <Wrench className="w-3.5 h-3.5 text-[#657a4e]" />
-                  <span>Simulate Next Stage (Andrew&apos;s Update)</span>
+                  <span>Simulate Next Stage (Our Team&apos;s Update)</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}

@@ -215,7 +215,8 @@ describe('createStripeOrder', () => {
 
     expect(order.orderId).toMatch(/^TS-\d{4}-\d{4}$/);
     expect(order.currentStage).toBe('BLUEPRINT_RECEIVED');
-    expect(order.stageHistory[0].technician).toContain('Andrew Hung');
+    expect(order.stageHistory[0].technician).toBe('Our team');
+    expect(order.stageHistory[0].notes).not.toMatch(/Andrew/);
     expect(order.deliveryMethod).toBe('assembled_local');
     expect(order.items[0].unitPriceCents).toBe(BLUEPRINT_CENTS);
     expect(order.assemblyCents).toBe(ASSEMBLY_CENTS);

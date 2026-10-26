@@ -22,6 +22,9 @@ import {
 
 export type { ShippingOption };
 
+/** Who order-tracker entries are attributed to. The site names the team, never individuals. */
+export const STUDIO_TEAM_LABEL = 'Our team';
+
 export interface CheckoutCustomerData {
   name: string;
   email: string;
@@ -193,8 +196,8 @@ export function createStripeOrder(params: {
       stage: 'BLUEPRINT_RECEIVED',
       timestamp: now.toISOString(),
       title: 'Blueprint Received & Queued in Studio',
-      notes: `Order #${orderId} verified with ${params.items.length} build(s). BOM validated against master parts ledger. Andrew queued physical build tray.`,
-      technician: 'Andrew Hung (Hardware & Vivarium Lead)',
+      notes: `Order #${orderId} verified with ${params.items.length} build(s). BOM validated against master parts ledger. Our team queued the physical build tray.`,
+      technician: STUDIO_TEAM_LABEL,
     },
   ];
 

@@ -114,7 +114,7 @@ export const AuthModal: React.FC = () => {
         {/* Explanation Banner */}
         <p className="text-xs sm:text-sm text-[#546358] leading-relaxed mb-5">
           {authModalConfig?.message ||
-            'Every TerraScape is an individually serialized living ecosystem. An account is required so Andrew can attach your coordinate blueprint to your workshop build tray and live order tracker.'}
+            'Every TerraScape is an individually serialized living ecosystem. An account is required so our team can attach your coordinate blueprint to your workshop build tray and live order tracker.'}
         </p>
 
         <div className="overflow-y-auto pr-1">

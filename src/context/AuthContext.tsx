@@ -10,9 +10,11 @@ import type {
 const SESSION_STORAGE_KEY = 'terrascape_auth_session_v1';
 const USERS_STORAGE_KEY = 'terrascape_registered_users_v1';
 
-// Accounts the old demo build seeded with a shared password. Remove them from
-// browsers that still have them so nobody can sign in with those credentials.
-const LEGACY_SEEDED_USER_IDS = new Set(['usr_vicky_verdant', 'usr_andrew_hardware']);
+// The old demo build seeded accounts with a shared password and fixed ids made only of
+// letters (e.g. "usr_demo_account"). Real ids always include a timestamp, so any id
+// without a digit is a seeded account: remove it from browsers that still have one.
+const isLegacySeededUserId = (id: unknown): boolean =>
+  typeof id === 'string' && id.startsWith('usr_') && !/\d/.test(id);
 
 type StoredAccount = { user: User; passwordHash: string };
 
@@ -34,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     try {
       const accounts = readStoredAccounts();
-      const kept = accounts.filter((account) => !LEGACY_SEEDED_USER_IDS.has(account.user?.id));
+      const kept = accounts.filter((account) => !isLegacySeededUserId(account.user?.id));
       if (kept.length !== accounts.length) {
         localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(kept));
       }
@@ -49,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
       if (savedSession) {
         const parsed = JSON.parse(savedSession) as User;
-        if (LEGACY_SEEDED_USER_IDS.has(parsed?.id)) {
+        if (isLegacySeededUserId(parsed?.id)) {
           localStorage.removeItem(SESSION_STORAGE_KEY);
         } else {
           setUser(parsed);
@@ -115,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           const usersList = readStoredAccounts().filter(
-            (account) => !LEGACY_SEEDED_USER_IDS.has(account.user?.id)
+            (account) => !isLegacySeededUserId(account.user?.id)
           );
 
           if (credentials?.isSignUp) {

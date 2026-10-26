@@ -6,7 +6,7 @@ import type {
   SerializedBlueprint,
   StageHistoryEntry,
 } from '../types/terrarium';
-import { verifiedUnitPriceCents } from '../utils/stripeCheckoutEngine';
+import { STUDIO_TEAM_LABEL, verifiedUnitPriceCents } from '../utils/stripeCheckoutEngine';
 import { QUARANTINE_HOURS, isShippingOption, type ShippingOption } from '../catalog/delivery';
 
 type StandardCartItemInput = Pick<CartItem, 'type' | 'sku' | 'name' | 'description'>;
@@ -104,6 +104,22 @@ function describeBlueprint(blueprint: SerializedBlueprint): string {
   return `${blueprint.foundation.name} · ${flora} ${flora === 1 ? 'plant' : 'plants'} · ${details} ${details === 1 ? 'detail' : 'details'}`;
 }
 
+/**
+ * Orders saved by older builds credited a named team member in each stage entry.
+ * Re-attribute them to the team and use the current stage notes.
+ */
+function anonymizeStoredOrder(order: OrderStatusInfo): OrderStatusInfo {
+  if (!Array.isArray(order.stageHistory)) return order;
+  return {
+    ...order,
+    stageHistory: order.stageHistory.map((entry) => ({
+      ...entry,
+      technician: STUDIO_TEAM_LABEL,
+      notes: STAGE_CONFIGS[entry.stage]?.defaultNote ?? entry.notes,
+    })),
+  };
+}
+
 const STAGE_CONFIGS: Record<
   OrderStage,
   { next: OrderStage | null; title: string; defaultNote: string }
@@ -116,7 +132,7 @@ const STAGE_CONFIGS: Record<
   CIRCUIT_SOLDERING: {
     next: 'PLANTING',
     title: 'Circuits Soldered & Tested',
-    defaultNote: 'Andrew soldered the PWM LED ring, ultrasonic piezo misting transducer, and I2C sensor bus. Oscilloscope test: PASS.',
+    defaultNote: 'Our team soldered the PWM LED ring, ultrasonic piezo misting transducer, and I2C sensor bus. Oscilloscope test: PASS.',
   },
   PLANTING: {
     next: 'QUARANTINE',
@@ -142,7 +158,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shippingOption, setShippingOption] = useState<ShippingOption>(loadShippingOption);
 
   const [orders, setOrders] = useState<OrderStatusInfo[]>(() =>
-    loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder)
+    loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder).map(anonymizeStoredOrder)
   );
 
   const [isOpen, setIsOpen] = useState(false);
@@ -305,7 +321,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           timestamp: new Date().toISOString(),
           title: nextConfig.title,
           notes: nextConfig.defaultNote,
-          technician: 'Andrew Hung (Hardware & Vivarium Lead)',
+          technician: STUDIO_TEAM_LABEL,
         };
 
         const updated: OrderStatusInfo = {

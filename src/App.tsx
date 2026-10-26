@@ -1291,7 +1291,7 @@ function Builder({
             <div className="smart-lid-banner-text">
               <strong>All-Inclusive Smart Climate Lid</strong>
               <p>
-                Every TerraScape vessel arrives complete with Andrew&apos;s custom circadian LED lighting, active ventilation fan, and ultrasonic misting manifold integrated directly into the lid collar ($0 / included).
+                Every TerraScape vessel arrives complete with our team&apos;s custom circadian LED lighting, active ventilation fan, and ultrasonic misting manifold integrated directly into the lid collar ($0 / included).
               </p>
             </div>
           </div>

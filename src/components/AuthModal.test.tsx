@@ -29,7 +29,7 @@ function renderAuth() {
 
 const legacyAccount = {
   user: {
-    id: 'usr_vicky_verdant',
+    id: 'usr_legacy_demo',
     name: 'Legacy Demo',
     email: 'legacy@example.test',
     provider: 'google',

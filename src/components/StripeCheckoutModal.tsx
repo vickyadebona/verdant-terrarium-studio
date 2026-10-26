@@ -115,7 +115,7 @@ export const StripeCheckoutModal: React.FC = () => {
     }, 1400);
 
     setTimeout(() => {
-      setProcessingStatus('Locking Serialized Blueprint & Queuing in Andrew\'s Studio...');
+      setProcessingStatus('Locking Serialized Blueprint & Queuing with Our Team...');
     }, 2000);
 
     setTimeout(() => {
@@ -482,7 +482,7 @@ export const StripeCheckoutModal: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-[#546358]">
               <Info className="w-4 h-4 text-[#657a4e] shrink-0" />
               <span>
-                Orders route directly to Andrew&apos;s workbench &amp; transition to the Live Assembly Tracker.
+                Orders route directly to our team&apos;s workbench &amp; transition to the Live Assembly Tracker.
               </span>
             </div>
           )}
