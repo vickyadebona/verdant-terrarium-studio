@@ -59,3 +59,86 @@ describe('Studio → Your Jar', () => {
     expect(screen.getByRole('button', { name: /Your Jar\s*1/ })).toBeInTheDocument();
   });
 });
+
+describe('FAQ page', () => {
+  function renderAt(path: string) {
+    window.history.replaceState(null, '', path);
+    return render(
+      <AllProviders>
+        <AppWithModals />
+      </AllProviders>
+    );
+  }
+
+  const questionButtons = () =>
+    screen.getAllByRole('button').filter((button) => button.hasAttribute('aria-expanded') && button.closest('.faq-accordion-item'));
+
+  it('starts with every question closed', () => {
+    renderAt('/faq');
+
+    expect(questionButtons().length).toBeGreaterThan(0);
+    for (const button of questionButtons()) {
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+    }
+  });
+
+  it('closes opened questions after leaving and coming back', () => {
+    renderAt('/faq');
+
+    fireEvent.click(questionButtons()[0]);
+    expect(questionButtons()[0]).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(screen.getAllByRole('link', { name: 'Our Story' })[0]);
+    fireEvent.click(screen.getAllByRole('link', { name: 'FAQ' })[0]);
+
+    for (const button of questionButtons()) {
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+    }
+  });
+});
+
+describe('Mobile menu', () => {
+  function renderAt(path: string) {
+    window.history.replaceState(null, '', path);
+    return render(
+      <AllProviders>
+        <AppWithModals />
+      </AllProviders>
+    );
+  }
+
+  it('opens and closes the main navigation with an accessible toggle', () => {
+    renderAt('/collections');
+
+    const toggle = screen.getByRole('button', { name: 'Open menu' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('aria-controls', 'main-navigation');
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveClass('open');
+  });
+
+  it('closes after choosing a page', () => {
+    renderAt('/collections');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    fireEvent.click(within(nav).getByRole('link', { name: 'FAQ' }));
+
+    expect(window.location.pathname).toBe('/faq');
+    expect(nav).not.toHaveClass('open');
+    expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes on Escape and returns focus to the menu button', () => {
+    renderAt('/collections');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    const toggle = screen.getByRole('button', { name: 'Open menu' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
+  });
+});

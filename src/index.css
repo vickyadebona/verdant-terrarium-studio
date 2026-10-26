@@ -205,6 +205,11 @@ a.text-button {
   transform: translateY(-1px);
 }
 
+/* Only shown on very narrow phones */
+.cta-label-short {
+  display: none;
+}
+
 .menu-button {
   display: none;
   flex-direction: column;
@@ -220,6 +225,16 @@ a.text-button {
   width: 20px;
   height: 1.5px;
   background: var(--ts-forest);
+  transition: transform 0.2s ease;
+}
+
+/* Two bars become an X while the menu is open */
+.menu-button.open span:first-child {
+  transform: translateY(3.25px) rotate(45deg);
+}
+
+.menu-button.open span:last-child {
+  transform: translateY(-3.25px) rotate(-45deg);
 }
 
 /* Primary & Secondary Buttons */
@@ -2168,22 +2183,81 @@ footer small {
   }
 }
 
-/* Mobile Breakpoint (Figma Branding Guidelines: Terrascape — Mobile, 20px L/R padding, 40px section T/B) */
-@media (max-width: 640px) {
-  :root {
-    --page-pad-x: 20px;
-    --header-pad-y: 20px;
-    --section-pad-y: 40px;
-    --footer-pad-y: 40px;
-  }
-
+/* Below 960px the full nav no longer fits beside the logo and account actions,
+   so it collapses behind the menu button (phones and portrait tablets). */
+@media (max-width: 959px) {
   .site-header .nav:not(.open) {
     display: none;
   }
 
+  /* Logo, sign-in and menu share one row; extra actions (Your Jar, Tracker) still wrap if needed. */
   .site-header {
     flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .site-header .header-actions {
+    gap: 0.4rem;
+  }
+
+  .site-header .menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  /* Open menu: a full-width list under the logo row */
+  .site-header .nav.open {
+    order: 3;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    border-top: 1px solid var(--ts-border);
+    padding-top: 0.25rem;
+  }
+
+  .site-header .nav.open a {
+    padding: 0.85rem 0;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--ts-border);
+  }
+
+  .site-header .nav.open a:last-child {
+    border-bottom: none;
+  }
+
+  .site-header .nav.open a.active {
+    color: var(--ts-forest);
+    font-weight: 600;
+  }
+}
+
+/* Mobile Breakpoint (Figma Branding Guidelines: Terrascape — Mobile, 20px L/R padding, 40px section T/B) */
+@media (max-width: 640px) {
+  :root {
+    --page-pad-x: 20px;
+    --header-pad-y: 12px;
+    --section-pad-y: 40px;
+    --footer-pad-y: 40px;
+  }
+
+  .site-header .brand {
+    font-size: 1.35rem;
     gap: 0.5rem;
+  }
+
+  .site-header .leaf-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  .site-header .nav-cta-button {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
   }
 
   .eng-cards.four-col,
@@ -2191,6 +2265,29 @@ footer small {
   .form-row,
   .form-row.three {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Narrow phones (360-389px): shrink a little more so logo, sign-in and menu share one row */
+@media (max-width: 389px) {
+  .site-header .brand {
+    font-size: 1.2rem;
+  }
+
+  .site-header .nav-cta-button {
+    padding: 0.5rem 0.55rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Very narrow phones (under 360px): the full label can't fit beside the menu, so show "Log in" */
+@media (max-width: 359px) {
+  .cta-label-full {
+    display: none;
+  }
+
+  .cta-label-short {
+    display: inline;
   }
 }
 

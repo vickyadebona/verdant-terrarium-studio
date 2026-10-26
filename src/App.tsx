@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Terrarium3DShowcase from "./Terrarium3DShowcase";
 import Terrarium2DLayeredView from "./Terrarium2DLayeredView";
 import {
@@ -495,6 +495,20 @@ export function App() {
   const [soilLayers, setSoilLayers] = useState<SoilLayerSpec[]>(getStoredBuilderSoil);
   const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape closes the mobile menu and returns focus to its button.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [menuOpen]);
 
   // Sync builder selections to session storage to persist across navigations/refreshes
   useEffect(() => {
@@ -671,7 +685,7 @@ export function App() {
             Terra<span className="brand-scape">Scape</span>
           </span>
         </a>
-        <nav className={menuOpen ? "nav open" : "nav"} aria-label="Main navigation">
+        <nav id="main-navigation" className={menuOpen ? "nav open" : "nav"} aria-label="Main navigation">
           <a
             href="/collections"
             className={page === "home" ? "active" : ""}
@@ -747,7 +761,8 @@ export function App() {
               }}
               title="Sign in or create a TerraScape account"
             >
-              Login / Create account
+              <span className="cta-label-full">Login / Create account</span>
+              <span className="cta-label-short">Log in</span>
             </button>
           )}
 
@@ -758,9 +773,13 @@ export function App() {
           )}
 
           <button
-            className="menu-button"
+            ref={menuButtonRef}
+            type="button"
+            className={menuOpen ? "menu-button open" : "menu-button"}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="main-navigation"
           >
             <span />
             <span />
@@ -1698,7 +1717,8 @@ const FAQ_SECTIONS = [
 ];
 
 function FaqPage({ navigate }: { navigate: (page: Page) => void }) {
-  const [openKey, setOpenKey] = useState<string | null>("Ordering & Customization-0");
+  // Every question starts closed. The page unmounts when the shopper leaves, so this resets on each visit.
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
   const toggleItem = (key: string) => {
     setOpenKey((current) => (current === key ? null : key));
