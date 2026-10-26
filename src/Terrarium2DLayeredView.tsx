@@ -1,15 +1,6 @@
-export interface SoilLayerSpec {
-  id: string;
-  sku: string;
-  name: string;
-  role: string;
-  depthMm: number;
-  contour: number;
-  colorTop: string;
-  colorBottom: string;
-  accentColor: string;
-  price: number;
-}
+import type { SoilLayerSpec } from "./catalog";
+
+export type { SoilLayerSpec };
 
 export interface Terrarium2DLayeredViewProps {
   selectedIds: string[];

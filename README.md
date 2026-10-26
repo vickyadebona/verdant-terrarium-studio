@@ -30,7 +30,7 @@ src/
 ├── Terrarium3DShowcase.tsx     # Three.js WebGL 3D showcase
 ├── context/                    # AuthContext & CartContext with local persistence
 ├── components/                 # CartDrawer, AuthModal, StripeCheckoutModal, OrderTrackerModal
-├── data/                       # Authoritative vessels, flora, substrates & hardware catalogs
+├── catalog/                    # Single product catalog (integer cents) & Studio blueprint builder
 └── utils/                      # Client router, Stripe checkout engine & Web Audio synthesizer
 ```
 

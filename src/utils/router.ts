@@ -6,9 +6,7 @@ export type Page =
   | "terracare"
   | "about"
   | "faq"
-  | "account"
-  | "checkout"
-  | "payments";
+  | "account";
 
 export type EditionKey = "cloud_forest" | "fern_study" | "moss_garden";
 
@@ -26,8 +24,6 @@ export const ROUTES = {
   TERRACARE: "/terracare",
   FAQ: "/faq",
   ACCOUNT: "/account",
-  CHECKOUT: "/checkout",
-  PAYMENTS: "/payments",
   EDITIONS: "/editions",
 } as const;
 
@@ -67,7 +63,13 @@ export function parsePath(pathname: string): RouteInfo {
     };
   }
 
-  if (clean === "/studio" || clean === "/build") {
+  // /checkout and /payments were the old Studio review steps; the Studio now hands off to the jar.
+  if (
+    clean === "/studio" ||
+    clean === "/build" ||
+    clean === "/checkout" ||
+    clean === "/payments"
+  ) {
     return {
       page: "build",
       path: "/studio",
@@ -92,20 +94,6 @@ export function parsePath(pathname: string): RouteInfo {
     return {
       page: "account",
       path: "/account",
-    };
-  }
-
-  if (clean === "/checkout") {
-    return {
-      page: "checkout",
-      path: "/checkout",
-    };
-  }
-
-  if (clean === "/payments") {
-    return {
-      page: "payments",
-      path: "/payments",
     };
   }
 
@@ -158,10 +146,6 @@ export function resolvePath(
       return { path: "/faq" };
     case "account":
       return { path: "/account" };
-    case "checkout":
-      return { path: "/checkout" };
-    case "payments":
-      return { path: "/payments" };
     case "edition":
       return { path: `/editions/${params?.editionId || "cloud_forest"}` };
     default:

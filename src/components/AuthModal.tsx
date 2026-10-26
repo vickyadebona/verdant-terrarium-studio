@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, X, ShieldCheck } from 'lucide-react';
+import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthModal: React.FC = () => {
@@ -75,18 +75,6 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleFillDemo = (type: 'vicky' | 'andrew') => {
-    if (type === 'vicky') {
-      setEmail('vicky@verdantstudio.com');
-      setPassword('password123');
-      setMode('signin');
-    } else {
-      setEmail('andrew@terrascape.hardware');
-      setPassword('password123');
-      setMode('signin');
-    }
-  };
-
   return (
     <div
       role="dialog"
@@ -130,7 +118,9 @@ export const AuthModal: React.FC = () => {
         </p>
 
         <div className="overflow-y-auto pr-1">
-          {/* Google OAuth One-Click Button */}
+          {/* Google sign-in is simulated until Phase 3 auth, so it only shows in development builds. */}
+          {import.meta.env.DEV && (
+          <>
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -170,6 +160,8 @@ export const AuthModal: React.FC = () => {
               </span>
             </div>
           </div>
+          </>
+          )}
 
           {/* Tab Switcher: Create Account vs Sign In */}
           <div className="grid grid-cols-2 p-1 bg-[#f0ede3] rounded-xl border border-[rgba(24,57,43,0.14)] mb-4">
@@ -205,7 +197,7 @@ export const AuthModal: React.FC = () => {
 
           {/* Error Message Alert */}
           {errorMsg && (
-            <div className="mb-4 p-2.5 rounded-xl bg-[#b96d4b]/15 border border-[#b96d4b]/40 text-[#b96d4b] text-xs flex items-center gap-2">
+            <div role="alert" className="mb-4 p-2.5 rounded-xl bg-[#b96d4b]/15 border border-[#b96d4b]/40 text-[#b96d4b] text-xs flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#b96d4b] shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -215,17 +207,19 @@ export const AuthModal: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs text-[#18392b] font-medium mb-1">
+                <label htmlFor="auth-full-name" className="block text-xs text-[#18392b] font-medium mb-1">
                   Full Name
                 </label>
                 <div className="relative">
                   <UserIcon className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    id="auth-full-name"
                     type="text"
                     required
+                    autoComplete="name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Vicky Adebona"
+                    placeholder="Your name"
                     className="w-full bg-white border border-[rgba(24,57,43,0.18)] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#18392b] placeholder:text-[#546358]/60 focus:outline-none focus:border-[#18392b] transition"
                   />
                 </div>
@@ -233,31 +227,36 @@ export const AuthModal: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-xs text-[#18392b] font-medium mb-1">
+              <label htmlFor="auth-email" className="block text-xs text-[#18392b] font-medium mb-1">
                 Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
+                  id="auth-email"
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@verdantstudio.com"
+                  placeholder="you@example.com"
                   className="w-full bg-white border border-[rgba(24,57,43,0.18)] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#18392b] placeholder:text-[#546358]/60 focus:outline-none focus:border-[#18392b] transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-[#18392b] font-medium mb-1">
+              <label htmlFor="auth-password" className="block text-xs text-[#18392b] font-medium mb-1">
                 Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-[#546358] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
+                  id="auth-password"
                   type="password"
                   required
+                  minLength={mode === 'signup' ? 8 : undefined}
+                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === 'signup' ? 'At least 8 characters' : 'Enter your password'}
@@ -286,31 +285,6 @@ export const AuthModal: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Pre-fill Links for smooth testing */}
-          <div className="mt-4 pt-3 border-t border-[rgba(24,57,43,0.14)] text-[11px] text-[#546358] flex flex-col gap-1.5">
-            <div className="flex items-center gap-1 text-[#18392b] font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#657a4e]" />
-              <span>Studio Testing Shortcuts:</span>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[#546358]">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('vicky')}
-                className="hover:underline text-[#18392b] font-medium cursor-pointer"
-              >
-                Sign in as Vicky Adebona (vicky@verdantstudio.com)
-              </button>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('andrew')}
-                className="hover:underline text-[#18392b] font-medium cursor-pointer"
-              >
-                Sign in as Andrew Hung
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security & Terms Footer */}

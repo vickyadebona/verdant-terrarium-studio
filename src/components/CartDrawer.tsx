@@ -5,8 +5,6 @@ import {
   Plus,
   Minus,
   ShoppingBag,
-  Wrench,
-  Truck,
   Cpu,
   Layers,
   Sparkles,
@@ -19,7 +17,11 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import type { CartItem } from '../types/terrarium';
-import { HARDWARE_MODULES, PRESETS, VESSELS } from '../data';
+import { ACCESSORY_PRODUCTS, ARRIVAL_GUARANTEE_DAYS } from '../catalog';
+import { formatCents, formatCentsExact } from '../catalog/money';
+import { TAX_RATE_LABEL } from '../catalog/delivery';
+import { quoteOrder } from '../utils/stripeCheckoutEngine';
+import { DeliveryOptionPicker } from './DeliveryOptionPicker';
 
 interface CartDrawerProps {
   onLoadCustomBlueprintToStudio?: (item: CartItem) => void;
@@ -32,12 +34,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
     closeCart,
     removeItem,
     updateQuantity,
-    updateItemFulfillment,
-    subtotal,
+    shippingOption,
+    setShippingOption,
     itemCount,
     openCheckoutModal,
     addStandardItem,
-    addCustomBlueprint,
   } = useCart();
   const { isAuthenticated, openAuthModal } = useAuth();
 
@@ -75,80 +76,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
     setExpandedBlueprintId((prev) => (prev === id ? null : id));
   };
 
-  const handleAddQuickHardware = (hwId: string) => {
-    const hw = HARDWARE_MODULES.find((h) => h.id === hwId);
-    if (!hw) return;
+  const copperLeds = ACCESSORY_PRODUCTS.copperMicroLeds;
+  const handleAddCopperLeds = () => {
     addStandardItem({
       type: 'hardware',
-      name: hw.name,
-      sku: hw.sku,
-      price: hw.price,
-      description: hw.specs,
+      name: copperLeds.name,
+      sku: copperLeds.sku,
+      description: 'IP67 coated copper wire · Warm 2200K firefly glow',
     });
   };
 
-  const handleAddSignaturePreset = () => {
-    const preset = PRESETS.rainforest;
-    const vessel = VESSELS.find((v) => v.id === preset.vessel) || VESSELS[0];
-    const unitPrice =
-      vessel.price +
-      preset.hardware.reduce((sum, hId) => {
-        const h = HARDWARE_MODULES.find((m) => m.id === hId);
-        return sum + (h ? h.price : 0);
-      }, 0) +
-      preset.substrates.length * 7 +
-      preset.items.length * 12 +
-      25; // assembled fee
-
-    addCustomBlueprint({
-      blueprint: {
-        blueprintVersion: '1.0.0',
-        createdAt: new Date().toISOString(),
-        fulfillmentType: 'assembled_local',
-        estimatedTotalUSD: unitPrice,
-        vessel: {
-          id: vessel.id,
-          sku: vessel.sku,
-          name: vessel.name,
-          price: vessel.price,
-        },
-        hardwareModules: preset.hardware.map((hId) => {
-          const h = HARDWARE_MODULES.find((m) => m.id === hId)!;
-          return { id: h.id, sku: h.sku, name: h.name, price: h.price };
-        }),
-        substrateStackBottomToTop: preset.substrates.map((s, idx) => ({
-          layerOrder: idx + 1,
-          sku: `SUB-${s.type.toUpperCase()}`,
-          name: s.type,
-          depthMm: s.depth,
-          slopeWave: s.contour,
-          price: 7,
-        })),
-        specimens: preset.items.map((i) => ({
-          sku: `BOT-${i.itemId.toUpperCase()}`,
-          name: i.itemId,
-          coordinates: { x: i.x, y: i.y },
-          scale: i.scale,
-          rotationDeg: i.rotation,
-          flippedHorizontally: i.flipX,
-          zIndex: i.zIndex,
-          price: 12,
-        })),
-      },
-      name: "Andrew's Rainforest Wardian Case (Signature 1-of-1)",
-      vesselId: vessel.id,
-      price: unitPrice,
-      fulfillmentType: 'assembled_local',
-      hardwareIds: preset.hardware,
-      botanicalCount: preset.items.length,
-      substrateCount: preset.substrates.length,
-    });
-  };
-
-  // Estimated shipping preview
-  const estimatedShipping = subtotal >= 150 ? 0 : 18;
-  const estimatedTax = Math.round(subtotal * 0.095);
-  const estimatedTotal = subtotal + estimatedShipping + estimatedTax;
+  // Same pricing function and delivery choice the checkout uses.
+  const estimate = quoteOrder(items, shippingOption);
+  const customBuildCount = items
+    .filter((item) => item.type === 'custom_blueprint')
+    .reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div
@@ -207,13 +149,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                   onClick={closeCart}
                   className="px-5 py-2.5 rounded-xl bg-[#18392b] hover:bg-[#11291f] text-white font-medium text-xs transition cursor-pointer shadow-xs"
                 >
-                  Return to Studio
-                </button>
-                <button
-                  onClick={handleAddSignaturePreset}
-                  className="px-5 py-2.5 rounded-xl bg-[#f0ede3] hover:bg-[#e6e2d6] text-[#18392b] text-xs border border-[rgba(24,57,43,0.2)] font-medium transition cursor-pointer"
-                >
-                  Load Signature 1-of-1 Build
+                  Keep browsing
                 </button>
               </div>
             </div>
@@ -221,6 +157,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
             items.map((item) => (
               <div
                 key={item.id}
+                role="group"
+                aria-label={item.name}
                 className="rounded-xl bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] p-4 sm:p-5 space-y-3.5 transition hover:border-[rgba(24,57,43,0.28)]"
               >
                 {/* Item Header */}
@@ -252,47 +190,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
 
                   <div className="text-right shrink-0">
                     <div className="text-base font-bold text-[#18392b]">
-                      ${item.price * item.quantity}
+                      {formatCents(item.unitPriceCents * item.quantity)}
                     </div>
                     {item.quantity > 1 && (
-                      <div className="text-[11px] text-[#546358]">${item.price} ea</div>
+                      <div className="text-[11px] text-[#546358]">
+                        {formatCents(item.unitPriceCents)} ea
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Custom Blueprint Badges & Fulfillment Selector */}
+                {/* Custom Blueprint Specs */}
                 {item.type === 'custom_blueprint' && (
                   <div className="space-y-2.5 pt-2 border-t border-[rgba(24,57,43,0.12)]">
-                    {/* Fulfillment Toggle */}
-                    <div className="flex items-center justify-between text-xs gap-2 bg-[#f8f5ee] p-2.5 rounded-lg border border-[rgba(24,57,43,0.14)]">
-                      <span className="text-[#546358] flex items-center gap-1.5 shrink-0 font-medium">
-                        {item.fulfillmentType === 'assembled_local' ? (
-                          <Wrench className="w-3.5 h-3.5 text-[#18392b]" />
-                        ) : (
-                          <Truck className="w-3.5 h-3.5 text-[#657a4e]" />
-                        )}
-                        Fulfillment:
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() =>
-                            updateItemFulfillment(
-                              item.id,
-                              item.fulfillmentType === 'assembled_local'
-                                ? 'diy_kit_shipped'
-                                : 'assembled_local'
-                            )
-                          }
-                          className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-white hover:bg-[#f0ede3] text-[#18392b] border border-[rgba(24,57,43,0.2)] transition cursor-pointer"
-                        >
-                          {item.fulfillmentType === 'assembled_local'
-                            ? 'Planted & Soldered (+$25)'
-                            : 'Nationwide DIY Kit ($0)'}
-                          <span className="ml-1 text-[#657a4e] underline">Change</span>
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Expandable Blueprint JSON & Re-load Actions */}
                     <div className="flex items-center justify-between text-xs pt-0.5">
                       <button
@@ -365,26 +275,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
             ))
           )}
 
+          {items.length > 0 && (
+            <div className="rounded-xl bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] p-3.5">
+              <DeliveryOptionPicker
+                name="cart-delivery"
+                value={shippingOption}
+                onChange={setShippingOption}
+                subtotalCents={estimate.subtotalCents}
+                customBuildCount={customBuildCount}
+              />
+            </div>
+          )}
+
           {/* Quick-Add Accessories Bar */}
           {items.length > 0 && (
             <div className="rounded-xl bg-[rgba(184,194,161,0.18)] border border-[rgba(24,57,43,0.16)] p-3.5 space-y-2.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#18392b] block">
                 Quick-Add Vivarium Accessories:
               </span>
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="text-xs">
                 <button
-                  onClick={() => handleAddQuickHardware('copper_fairy')}
-                  className="p-2.5 rounded-lg bg-white hover:bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] text-left transition cursor-pointer shadow-2xs"
+                  onClick={handleAddCopperLeds}
+                  className="w-full p-2.5 rounded-lg bg-white hover:bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] text-left transition cursor-pointer shadow-2xs"
                 >
                   <div className="font-semibold text-[#18392b] truncate">Copper Micro-LEDs</div>
-                  <div className="text-[11px] text-[#657a4e] mt-0.5">+$18 · Firefly Ambient</div>
-                </button>
-                <button
-                  onClick={() => handleAddQuickHardware('hygro_controller')}
-                  className="p-2.5 rounded-lg bg-white hover:bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] text-left transition cursor-pointer shadow-2xs"
-                >
-                  <div className="font-semibold text-[#18392b] truncate">Micro Fan &amp; Sensor</div>
-                  <div className="text-[11px] text-[#657a4e] mt-0.5">Included ($0) · Standard</div>
+                  <div className="text-[11px] text-[#546358] mt-0.5">
+                    +{formatCents(copperLeds.priceCents)} · Firefly Ambient
+                  </div>
                 </button>
               </div>
             </div>
@@ -397,27 +314,41 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
             <div className="space-y-1.5 text-xs text-[#546358]">
               <div className="flex justify-between">
                 <span>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
-                <span className="font-sans text-[#18392b] font-bold">${subtotal}.00</span>
+                <span className="font-sans text-[#18392b] font-bold">
+                  {formatCentsExact(estimate.subtotalCents)}
+                </span>
               </div>
+              {estimate.assemblyCents > 0 && (
+                <div className="flex justify-between">
+                  <span>Studio assembly ({customBuildCount} {customBuildCount === 1 ? 'build' : 'builds'})</span>
+                  <span className="font-sans text-[#18392b] font-semibold">
+                    {formatCentsExact(estimate.assemblyCents)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span>Estimated Delivery</span>
+                <span>Delivery</span>
                 <span className="font-sans text-[#18392b]">
-                  {estimatedShipping === 0 ? (
+                  {estimate.shippingCents === 0 ? (
                     <span className="text-[#18392b] font-semibold bg-[rgba(184,194,161,0.35)] px-2 py-0.5 rounded text-[11px]">
                       Complimentary ($0)
                     </span>
                   ) : (
-                    `$${estimatedShipping}.00`
+                    formatCentsExact(estimate.shippingCents)
                   )}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Estimated Sales Tax (CA 9.5%)</span>
-                <span className="font-sans text-[#18392b] font-semibold">${estimatedTax}.00</span>
+                <span>Estimated Sales Tax (CA {TAX_RATE_LABEL})</span>
+                <span className="font-sans text-[#18392b] font-semibold">
+                  {formatCentsExact(estimate.taxCents)}
+                </span>
               </div>
               <div className="border-t border-[rgba(24,57,43,0.14)] pt-2.5 flex justify-between items-baseline font-serif text-[#18392b]">
                 <span className="text-base font-normal">Estimated Total</span>
-                <span className="text-2xl font-normal font-serif">${estimatedTotal}.00 USD</span>
+                <span className="text-2xl font-normal font-serif">
+                  {formatCentsExact(estimate.totalCents)} USD
+                </span>
               </div>
             </div>
 
@@ -437,7 +368,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
               <span>•</span>
               <span>Google Pay</span>
               <span>•</span>
-              <span>30-Day Guarantee</span>
+              <span>{ARRIVAL_GUARANTEE_DAYS}-Day Guarantee</span>
             </div>
           </div>
         )}

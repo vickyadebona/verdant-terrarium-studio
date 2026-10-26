@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { OrderStage } from '../types/terrarium';
+import { formatCentsExact } from '../catalog/money';
+import { QUARANTINE_HOURS, TAX_RATE_LABEL } from '../catalog/delivery';
 
 interface StageMeta {
   key: OrderStage;
@@ -45,7 +47,7 @@ const STAGES: StageMeta[] = [
   },
   {
     key: 'QUARANTINE',
-    label: '7-Day Quarantine',
+    label: `${QUARANTINE_HOURS}-Hour Quarantine`,
     description: 'Moisture seal, fungus gnat check & springtail colony balance.',
     icon: ShieldAlert,
   },
@@ -154,7 +156,13 @@ export const OrderTrackerModal: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-[#546358]">
-                Tracking code: <span className="font-mono text-[#18392b] font-medium">{activeOrder.trackingNumber}</span> ({activeOrder.carrier})
+                {activeOrder.trackingNumber ? (
+                  <>
+                    Tracking code: <span className="font-mono text-[#18392b] font-medium">{activeOrder.trackingNumber}</span> ({activeOrder.carrier})
+                  </>
+                ) : (
+                  activeOrder.deliveryOptionTitle
+                )}
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -171,7 +179,8 @@ export const OrderTrackerModal: React.FC = () => {
               <label className="text-xs font-semibold uppercase tracking-wider text-[#546358] font-sans">
                 Studio Assembly Stages
               </label>
-              {currentStageIndex < STAGES.length - 1 && (
+              {/* Development builds only: the studio advances real orders from the Phase 3 workbench. */}
+              {import.meta.env.DEV && currentStageIndex < STAGES.length - 1 && (
                 <button
                   onClick={() => advanceOrderStage(activeOrder.orderId)}
                   className="px-2.5 py-1 rounded-lg bg-[#f0ede3] hover:bg-[#eae5d8] text-[#18392b] text-xs border border-[rgba(24,57,43,0.18)] font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
@@ -268,9 +277,11 @@ export const OrderTrackerModal: React.FC = () => {
                 <div>
                   <span className="text-[#546358]">Email:</span> {activeOrder.customerEmail}
                 </div>
-                <div>
-                  <span className="text-[#546358]">Address:</span> {activeOrder.shippingAddress.street}, {activeOrder.shippingAddress.city}, {activeOrder.shippingAddress.state} {activeOrder.shippingAddress.zip}
-                </div>
+                {activeOrder.shippingAddress.street && (
+                  <div>
+                    <span className="text-[#546358]">Address:</span> {activeOrder.shippingAddress.street}, {activeOrder.shippingAddress.city}, {activeOrder.shippingAddress.state} {activeOrder.shippingAddress.zip}
+                  </div>
+                )}
                 <div>
                   <span className="text-[#546358]">Fulfillment:</span> {activeOrder.deliveryOptionTitle}
                 </div>
@@ -289,21 +300,29 @@ export const OrderTrackerModal: React.FC = () => {
               <div className="text-xs text-[#18392b] space-y-1">
                 <div className="flex justify-between">
                   <span className="text-[#546358]">Items Subtotal:</span>
-                  <span className="font-mono">${activeOrder.subtotal}.00</span>
+                  <span className="font-mono">{formatCentsExact(activeOrder.subtotalCents)}</span>
                 </div>
+                {!!activeOrder.assemblyCents && (
+                  <div className="flex justify-between">
+                    <span className="text-[#546358]">Studio Assembly:</span>
+                    <span className="font-mono">{formatCentsExact(activeOrder.assemblyCents)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span className="text-[#546358]">Shipping &amp; Delivery:</span>
+                  <span className="text-[#546358]">Delivery:</span>
                   <span className="font-mono">
-                    {activeOrder.shippingFee === 0 ? 'Complimentary ($0)' : `$${activeOrder.shippingFee}.00`}
+                    {activeOrder.shippingCents === 0
+                      ? 'Complimentary ($0)'
+                      : formatCentsExact(activeOrder.shippingCents)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#546358]">Sales Tax (CA 9.5%):</span>
-                  <span className="font-mono">${activeOrder.taxAmount}.00</span>
+                  <span className="text-[#546358]">Sales Tax (CA {TAX_RATE_LABEL}):</span>
+                  <span className="font-mono">{formatCentsExact(activeOrder.taxCents)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-[#18392b] pt-1 border-t border-[rgba(24,57,43,0.14)]">
                   <span>Total Paid (Stripe):</span>
-                  <span className="font-mono">${activeOrder.total}.00 USD</span>
+                  <span className="font-mono">{formatCentsExact(activeOrder.totalCents)} USD</span>
                 </div>
                 <div className="text-[10px] text-[#546358] font-mono pt-0.5">
                   Method: {activeOrder.paymentMethodDetails.brand} (•••• {activeOrder.paymentMethodDetails.last4})

@@ -1,218 +1,254 @@
 import { describe, it, expect } from 'vitest';
-import { validateCartPricing, createStripeOrder } from './stripeCheckoutEngine';
-import { VESSELS, SUBSTRATES, CATALOG_ITEMS, HARDWARE_MODULES } from '../data';
+import { createStripeOrder, priceBlueprint, quoteOrder } from './stripeCheckoutEngine';
+import { addBusinessDays, deliveryFeeLabel } from '../catalog/delivery';
+import { buildStudioBlueprint } from '../catalog/studioBlueprint';
+import {
+  ACCESSORY_PRODUCTS,
+  EDITION_PRODUCTS,
+  SOIL_RECIPES,
+  studioStartingPriceCents,
+} from '../catalog';
 import type { CartItem, SerializedBlueprint } from '../types/terrarium';
 
-describe('stripeCheckoutEngine utilities', () => {
-  const sampleBlueprint: SerializedBlueprint = {
-    blueprintVersion: '1.0.0',
-    createdAt: new Date().toISOString(),
-    fulfillmentType: 'assembled_local',
-    estimatedTotalUSD: 165,
-    vessel: {
-      id: VESSELS[0].id,
-      sku: VESSELS[0].sku,
-      name: VESSELS[0].name,
-      price: VESSELS[0].price,
-    },
-    hardwareModules: [
-      {
-        id: HARDWARE_MODULES[0].id,
-        sku: HARDWARE_MODULES[0].sku,
-        name: HARDWARE_MODULES[0].name,
-        price: HARDWARE_MODULES[0].price,
-      },
-    ],
-    substrateStackBottomToTop: [
-      {
-        layerOrder: 1,
-        sku: SUBSTRATES[0].sku,
-        name: SUBSTRATES[0].name,
-        depthMm: 25,
-        slopeWave: 'flat',
-        price: SUBSTRATES[0].pricePerLayer,
-      },
-    ],
-    specimens: [
-      {
-        sku: CATALOG_ITEMS[0].sku,
-        name: CATALOG_ITEMS[0].name,
-        coordinates: { x: 100, y: 100 },
-        scale: 1,
-        rotationDeg: 0,
-        flippedHorizontally: false,
-        zIndex: 1,
-        price: CATALOG_ITEMS[0].price,
-      },
-    ],
+function studioBlueprint(selected: string[]): SerializedBlueprint {
+  const result = buildStudioBlueprint(selected, SOIL_RECIPES.forest);
+  if (!result.ok) throw new Error(`missing ${result.missing.join(', ')}`);
+  return result.blueprint;
+}
+
+// Smooth jar $84 + forest $22 + 2 × fern $18 + river stone $11 = $153
+const sampleBlueprint = studioBlueprint(['jar_smooth', 'forest', 'fern', 'fern', 'stone']);
+const BLUEPRINT_CENTS = 15300;
+const ASSEMBLY_CENTS = 2500;
+
+function customItem(overrides: Partial<CartItem> = {}): CartItem {
+  return {
+    id: 'cart-1',
+    type: 'custom_blueprint',
+    sku: 'CUSTOM-BUILD',
+    name: 'Custom Terrarium',
+    unitPriceCents: BLUEPRINT_CENTS,
+    quantity: 1,
+    blueprint: sampleBlueprint,
+    ...overrides,
   };
+}
 
-  const expectedBlueprintUnitPrice =
-    VESSELS[0].price +
-    SUBSTRATES[0].pricePerLayer +
-    CATALOG_ITEMS[0].price +
-    HARDWARE_MODULES[0].price +
-    25; // 25 for assembled_local
+const copperLeds: CartItem = {
+  id: 'hw-1',
+  type: 'hardware',
+  sku: ACCESSORY_PRODUCTS.copperMicroLeds.sku,
+  name: ACCESSORY_PRODUCTS.copperMicroLeds.name,
+  unitPriceCents: 1800,
+  quantity: 1,
+};
 
-  describe('validateCartPricing', () => {
-    it('validates a legitimate custom blueprint cart item without tamper flag', () => {
-      const items: CartItem[] = [
-        {
-          id: 'cart-1',
-          type: 'custom_blueprint',
-          sku: 'TERRA-CUSTOM-001',
-          name: 'Custom Terrarium',
-          price: expectedBlueprintUnitPrice,
-          quantity: 1,
-          blueprint: sampleBlueprint,
-          fulfillmentType: 'assembled_local',
-        },
-      ];
-
-      const result = validateCartPricing(items, 'assembled_local');
-
-      expect(result.valid).toBe(true);
-      expect(result.tamperDetected).toBe(false);
-      expect(result.subtotal).toBe(expectedBlueprintUnitPrice);
-      expect(result.shippingFee).toBe(18); // assembled default courier fee
-      expect(result.taxAmount).toBe(Math.round((result.subtotal + result.shippingFee) * 0.095));
-      expect(result.total).toBe(result.subtotal + result.shippingFee + result.taxAmount);
-      expect(result.itemizedLineItems).toHaveLength(1);
-      expect(result.itemizedLineItems[0].unitPrice).toBe(expectedBlueprintUnitPrice);
-    });
-
-    it('detects price tampering when client price does not match master catalog sum', () => {
-      const tamperedItems: CartItem[] = [
-        {
-          id: 'cart-1',
-          type: 'custom_blueprint',
-          sku: 'TERRA-CUSTOM-001',
-          name: 'Custom Terrarium',
-          price: 1.0, // Tampered client price!
-          quantity: 1,
-          blueprint: sampleBlueprint,
-          fulfillmentType: 'assembled_local',
-        },
-      ];
-
-      const result = validateCartPricing(tamperedItems, 'assembled_local');
-
-      expect(result.valid).toBe(true);
-      expect(result.tamperDetected).toBe(true);
-      // Subtotal should be corrected back to verified master cost
-      expect(result.subtotal).toBe(expectedBlueprintUnitPrice);
-    });
-
-    it('applies complimentary free shipping for shipped orders with subtotal >= $150', () => {
-      const items: CartItem[] = [
-        {
-          id: 'acc-1',
-          type: 'accessory',
-          sku: 'ACC-TOOLKIT',
-          name: 'Terrarium Aquascaping Toolkit',
-          price: 160,
-          quantity: 1,
-          fulfillmentType: 'diy_kit',
-        },
-      ];
-
-      const result = validateCartPricing(items, 'diy_kit');
-
-      expect(result.subtotal).toBe(160);
-      expect(result.shippingFee).toBe(0);
-      expect(result.total).toBe(160 + Math.round(160 * 0.095));
-    });
-
-    it('charges standard $18 shipping for shipped orders with subtotal < $150', () => {
-      const items: CartItem[] = [
-        {
-          id: 'acc-1',
-          type: 'accessory',
-          sku: 'ACC-MIST',
-          name: 'Glass Plant Mister',
-          price: 45,
-          quantity: 1,
-          fulfillmentType: 'diy_kit',
-        },
-      ];
-
-      const result = validateCartPricing(items, 'diy_kit');
-
-      expect(result.subtotal).toBe(45);
-      expect(result.shippingFee).toBe(18);
-    });
-
-    it('correctly calculates hardware module stand-alone items', () => {
-      const hwModule = HARDWARE_MODULES[0];
-      const items: CartItem[] = [
-        {
-          id: 'hw-1',
-          type: 'hardware',
-          sku: hwModule.sku,
-          name: hwModule.name,
-          price: hwModule.price,
-          quantity: 2,
-        },
-      ];
-
-      const result = validateCartPricing(items, 'diy_kit');
-
-      expect(result.subtotal).toBe(hwModule.price * 2);
-      expect(result.itemizedLineItems[0].lineTotal).toBe(hwModule.price * 2);
-    });
+describe('buildStudioBlueprint', () => {
+  it('reports the missing vessel and foundation steps', () => {
+    const result = buildStudioBlueprint(['fern'], SOIL_RECIPES.forest);
+    expect(result).toEqual({ ok: false, missing: ['Vessel', 'Foundation'] });
   });
 
-  describe('createStripeOrder', () => {
-    it('creates an authoritative OrderStatusInfo with initial BLUEPRINT_RECEIVED stage', () => {
-      const items: CartItem[] = [
-        {
-          id: 'cart-1',
-          type: 'custom_blueprint',
-          sku: 'TERRA-CUSTOM-001',
-          name: 'Custom Terrarium',
-          price: expectedBlueprintUnitPrice,
-          quantity: 1,
-          blueprint: sampleBlueprint,
-          fulfillmentType: 'assembled_local',
-        },
-      ];
+  it('collapses repeated option ids into quantities and keeps soil layers', () => {
+    const fern = sampleBlueprint.elements.find((line) => line.sku === 'FLR-FRN');
+    expect(fern?.quantity).toBe(2);
+    expect(sampleBlueprint.vessel.sku).toBe('VSL-CIR-SM');
+    expect(sampleBlueprint.foundation.layers.map((layer) => layer.sku)).toEqual([
+      'SUB-LEC',
+      'SUB-CHR',
+      'SUB-HUM',
+      'SUB-MOS',
+    ]);
+  });
 
-      const { order, stripeIntent } = createStripeOrder({
-        items,
-        customer: {
-          name: 'Jane Botanist',
-          email: 'jane@example.com',
-          phone: '555-0199',
-        },
-        shipping: {
-          street: '123 Flora Way',
-          city: 'San Francisco',
-          state: 'CA',
-          zip: '94110',
-          deliveryMethod: 'assembled_local',
-          deliveryOptionTitle: 'Studio White-Glove Courier',
-        },
-        paymentMethod: {
-          brand: 'visa',
-          last4: '4242',
-        },
-      });
+  it('clamps soil depths to the Studio slider range', () => {
+    const deep = SOIL_RECIPES.forest.map((layer) => ({ ...layer, depthMm: 400 }));
+    const result = buildStudioBlueprint(['jar_smooth', 'forest'], deep);
+    expect(result.ok && result.blueprint.foundation.layers.every((l) => l.depthMm === 48)).toBe(true);
+  });
+});
 
-      // Verify order identity and tracking
-      expect(order.orderId).toMatch(/^TS-\d{4}-\d{4}$/);
-      expect(order.customerName).toBe('Jane Botanist');
-      expect(order.customerEmail).toBe('jane@example.com');
-      expect(order.currentStage).toBe('BLUEPRINT_RECEIVED');
-      expect(order.stageHistory).toHaveLength(1);
-      expect(order.stageHistory[0].stage).toBe('BLUEPRINT_RECEIVED');
-      expect(order.stageHistory[0].technician).toContain('Andrew Hung');
+describe('priceBlueprint', () => {
+  it('sums catalog prices in cents', () => {
+    expect(priceBlueprint(sampleBlueprint)).toBe(BLUEPRINT_CENTS);
+  });
 
-      // Verify simulated Stripe PaymentIntent payload
-      expect(stripeIntent.object).toBe('payment_intent');
-      expect(stripeIntent.status).toBe('succeeded');
-      expect(stripeIntent.currency).toBe('usd');
-      expect(stripeIntent.amount).toBe(Math.round(order.total * 100)); // Cents conversion
-      expect((stripeIntent as any).metadata.order_id).toBe(order.orderId);
+  it('ignores client-supplied unit prices', () => {
+    const cheap: SerializedBlueprint = {
+      ...sampleBlueprint,
+      vessel: { ...sampleBlueprint.vessel, unitPriceCents: 1 },
+    };
+    expect(priceBlueprint(cheap)).toBe(BLUEPRINT_CENTS);
+  });
+
+  it('rejects unknown SKUs and SKUs in the wrong slot', () => {
+    expect(
+      priceBlueprint({ ...sampleBlueprint, vessel: { ...sampleBlueprint.vessel, sku: 'VSL-GLB-01' } })
+    ).toBeNull();
+    expect(
+      priceBlueprint({ ...sampleBlueprint, vessel: { ...sampleBlueprint.vessel, sku: 'FLR-FRN' } })
+    ).toBeNull();
+  });
+
+  it('rejects quantities outside 1–5', () => {
+    const tooMany: SerializedBlueprint = {
+      ...sampleBlueprint,
+      elements: [{ sku: 'FLR-FRN', name: 'Button Fern', quantity: 6, unitPriceCents: 1800 }],
+    };
+    expect(priceBlueprint(tooMany)).toBeNull();
+  });
+});
+
+describe('quoteOrder', () => {
+  it('adds studio assembly as its own line for courier delivery', () => {
+    const quote = quoteOrder([customItem()], 'courier');
+
+    expect(quote.valid).toBe(true);
+    expect(quote.tamperDetected).toBe(false);
+    expect(quote.subtotalCents).toBe(BLUEPRINT_CENTS);
+    expect(quote.assemblyCents).toBe(ASSEMBLY_CENTS);
+    expect(quote.shippingCents).toBe(1800);
+    expect(quote.taxCents).toBe(1862); // 9.5% of $196.00, to the cent
+    expect(quote.totalCents).toBe(BLUEPRINT_CENTS + ASSEMBLY_CENTS + 1800 + 1862);
+  });
+
+  it('charges assembly per custom build, for pickup too, and never for editions or hardware', () => {
+    const edition: CartItem = {
+      id: 'ed-1',
+      type: 'signature_build',
+      sku: EDITION_PRODUCTS.moss_garden.sku,
+      name: 'Moss Garden',
+      unitPriceCents: 13800,
+      quantity: 1,
+    };
+    const quote = quoteOrder([customItem({ quantity: 2 }), edition, copperLeds], 'pickup');
+    expect(quote.assemblyCents).toBe(2 * ASSEMBLY_CENTS);
+    expect(quote.shippingCents).toBe(0);
+  });
+
+  it('ships custom builds as DIY kits without assembly', () => {
+    const quote = quoteOrder([customItem()], 'shipped');
+    expect(quote.assemblyCents).toBe(0);
+    expect(quote.subtotalCents).toBe(BLUEPRINT_CENTS);
+    expect(quote.shippingCents).toBe(0); // free over $150
+  });
+
+  it('flags and corrects a tampered client price', () => {
+    const quote = quoteOrder([customItem({ unitPriceCents: 100 })], 'courier');
+    expect(quote.tamperDetected).toBe(true);
+    expect(quote.subtotalCents).toBe(BLUEPRINT_CENTS);
+  });
+
+  it('charges shipping under $150 and nothing for studio pickup', () => {
+    expect(quoteOrder([copperLeds], 'shipped').shippingCents).toBe(1800);
+    expect(quoteOrder([copperLeds], 'pickup').shippingCents).toBe(0);
+  });
+
+  it('prices editions from the catalog', () => {
+    const edition: CartItem = {
+      id: 'ed-1',
+      type: 'signature_build',
+      sku: EDITION_PRODUCTS.fern_study.sku,
+      name: 'Fern Study',
+      unitPriceCents: 1,
+      quantity: 1,
+    };
+    const quote = quoteOrder([edition], 'courier');
+    expect(quote.subtotalCents).toBe(16200);
+    expect(quote.assemblyCents).toBe(0);
+    expect(quote.tamperDetected).toBe(true);
+  });
+
+  it('is invalid for an empty cart and charges nothing', () => {
+    const quote = quoteOrder([], 'courier');
+    expect(quote.valid).toBe(false);
+    expect(quote.totalCents).toBe(0);
+  });
+
+  it('is invalid when a SKU is not in the catalog', () => {
+    const unknown: CartItem = { ...copperLeds, sku: 'ACC-PINSETTE' };
+    const quote = quoteOrder([copperLeds, unknown], 'shipped');
+    expect(quote.valid).toBe(false);
+    expect(quote.unknownSkus).toEqual(['ACC-PINSETTE']);
+  });
+});
+
+describe('studioStartingPriceCents', () => {
+  it('is the cheapest vessel plus the cheapest foundation', () => {
+    // Smooth jar $84 + Pacific Forest $22
+    expect(studioStartingPriceCents()).toBe(10600);
+  });
+});
+
+describe('delivery promises', () => {
+  it('labels fees from the same constants the quote uses', () => {
+    expect(deliveryFeeLabel('courier')).toBe('$18');
+    expect(deliveryFeeLabel('pickup')).toBe('Free');
+    expect(deliveryFeeLabel('shipped')).toBe('$18 · free over $150');
+    expect(deliveryFeeLabel('shipped', 16200)).toBe('Free');
+  });
+
+  it('counts business days, skipping weekends', () => {
+    const friday = new Date(2026, 9, 23);
+    expect(addBusinessDays(friday, 1).getDate()).toBe(26); // Monday
+    expect(addBusinessDays(friday, 7).getDate()).toBe(3); // Tuesday, Nov 3
+  });
+});
+
+describe('createStripeOrder', () => {
+  const customer = { name: 'Jane Botanist', email: 'jane@example.com', phone: '555-0199' };
+  const shipping = {
+    street: '123 Flora Way',
+    city: 'San Francisco',
+    state: 'CA',
+    zip: '94110',
+    shippingOption: 'courier' as const,
+  };
+
+  it('creates an order at the BLUEPRINT_RECEIVED stage with verified cents', () => {
+    const { order, stripeIntent } = createStripeOrder({
+      items: [customItem({ unitPriceCents: 100 })],
+      customer,
+      shipping,
+      paymentMethod: { brand: 'visa', last4: '4242' },
     });
+
+    expect(order.orderId).toMatch(/^TS-\d{4}-\d{4}$/);
+    expect(order.currentStage).toBe('BLUEPRINT_RECEIVED');
+    expect(order.stageHistory[0].technician).toContain('Andrew Hung');
+    expect(order.deliveryMethod).toBe('assembled_local');
+    expect(order.items[0].unitPriceCents).toBe(BLUEPRINT_CENTS);
+    expect(order.assemblyCents).toBe(ASSEMBLY_CENTS);
+    expect(order.deliveryOptionTitle).toBe('Studio courier · Southern California');
+    expect(order.carrier).toBe('TerraScape Studio Courier');
+    expect(order.trackingNumber).toBeUndefined();
+    expect(order.totalCents).toBe(
+      order.subtotalCents + (order.assemblyCents ?? 0) + order.shippingCents + order.taxCents
+    );
+    expect(stripeIntent.amount).toBe(order.totalCents);
+    expect(stripeIntent.currency).toBe('usd');
+  });
+
+  it('records shipped orders as DIY kits with a carrier tracking number', () => {
+    const { order } = createStripeOrder({
+      items: [customItem()],
+      customer,
+      shipping: { ...shipping, shippingOption: 'shipped' },
+      paymentMethod: { brand: 'visa', last4: '4242' },
+    });
+    expect(order.deliveryMethod).toBe('diy_kit_shipped');
+    expect(order.assemblyCents).toBe(0);
+    expect(order.trackingNumber).toMatch(/^1Z/);
+  });
+
+  it('refuses to create an order for an empty cart', () => {
+    expect(() =>
+      createStripeOrder({
+        items: [],
+        customer,
+        shipping,
+        paymentMethod: { brand: 'visa', last4: '4242' },
+      })
+    ).toThrow('Your jar is empty.');
   });
 });

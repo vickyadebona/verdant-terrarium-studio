@@ -1,6 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import Terrarium3DShowcase from "./Terrarium3DShowcase";
-import Terrarium2DLayeredView, { type SoilLayerSpec } from "./Terrarium2DLayeredView";
+import Terrarium2DLayeredView from "./Terrarium2DLayeredView";
+import {
+  ARRIVAL_GUARANTEE_DAYS,
+  ASSEMBLY_FEE_CENTS,
+  EDITION_PRODUCTS,
+  FREE_SHIPPING_THRESHOLD_CENTS,
+  MAX_ELEMENT_QUANTITY,
+  SHIPPED_FEE_CENTS,
+  SINGLE_CHOICE_CATEGORIES,
+  SOIL_CONTOUR_RANGE,
+  SOIL_DEPTH_RANGE_MM,
+  SOIL_RECIPES,
+  STUDIO_CATEGORIES,
+  STUDIO_OPTIONS,
+  getStudioOption,
+  studioStartingPriceCents,
+  type SoilLayerSpec,
+  type StudioCategory,
+  type StudioOption,
+} from "./catalog";
+import { formatCents } from "./catalog/money";
+import { DELIVERY_OPTIONS, QUARANTINE_HOURS } from "./catalog/delivery";
+import { buildStudioBlueprint } from "./catalog/studioBlueprint";
 import { useCart } from "./context/CartContext";
 import { useAuth } from "./context/AuthContext";
 import { CartDrawer } from "./components/CartDrawer";
@@ -19,17 +41,8 @@ import {
 
 export type { Page, EditionKey };
 
-type Category = "Vessel" | "Foundation" | "Flora" | "Details";
-
-type Option = {
-  id: string;
-  sku: string;
-  name: string;
-  note: string;
-  price: number;
-  category: Category;
-  image?: string;
-};
+type Category = StudioCategory;
+type Option = StudioOption;
 
 const images = {
   hero: "/renders/terrascape-hero-photo.jpg",
@@ -39,289 +52,15 @@ const images = {
   jar: "https://images.unsplash.com/photo-1738061422017-8b647262e703?auto=format&fit=crop&w=1000&q=85",
 };
 
-const options: Option[] = [
-  // STEP 01: VESSEL & LID
-  {
-    id: "jar_smooth",
-    sku: "VSL-CIR-SM",
-    name: "Tall Apothecary Jar · Smooth Lid",
-    note: "Hand-blown circular glass · Integrated LED, fan & ultrasonic mist lid · 14 in",
-    price: 84,
-    category: "Vessel",
-  },
-  {
-    id: "jar_ridged",
-    sku: "VSL-CIR-RG",
-    name: "Tall Apothecary Jar · Ridged Lid",
-    note: "Hand-blown circular glass · Fluted collar with integrated LED, fan & mist · 14 in",
-    price: 92,
-    category: "Vessel",
-  },
-
-  // STEP 02: FOUNDATION
-  {
-    id: "forest",
-    sku: "FND-FOR",
-    name: "Pacific Forest Floor",
-    note: "Biochar, coco coir, Douglas fir bark & contoured moss",
-    price: 22,
-    category: "Foundation",
-  },
-  {
-    id: "volcanic",
-    sku: "FND-VOL",
-    name: "Volcanic Lava-Rock Backwall",
-    note: "Stacked natural black scoria wall & five-layer drainage base",
-    price: 34,
-    category: "Foundation",
-  },
-  {
-    id: "tropical",
-    sku: "FND-TRP",
-    name: "Cloud Tropical Blend",
-    note: "Moisture-loving sphagnum, white silica sand ribbon & clay pebbles",
-    price: 26,
-    category: "Foundation",
-  },
-
-  // STEP 03: FLORA
-  {
-    id: "fern",
-    sku: "FLR-FRN",
-    name: "Button Fern",
-    note: "Soft, arching emerald fronds",
-    price: 18,
-    category: "Flora",
-    image: images.jar,
-  },
-  {
-    id: "fittonia",
-    sku: "FLR-FIT",
-    name: "Fittonia Trio",
-    note: "Blush, white & ruby veined leaves",
-    price: 24,
-    category: "Flora",
-    image: images.fern,
-  },
-  {
-    id: "moss",
-    sku: "FLR-MOS",
-    name: "Cushion Moss",
-    note: "Cloud-like living carpet",
-    price: 16,
-    category: "Flora",
-    image: images.moss,
-  },
-  {
-    id: "monstera",
-    sku: "FLR-MON",
-    name: "Miniature Epiphyte Vine",
-    note: "Trailing tropical foliage along the upper scape",
-    price: 22,
-    category: "Flora",
-  },
-  {
-    id: "selaginella",
-    sku: "FLR-SEL",
-    name: "Selaginella Clubmoss",
-    note: "Delicate, feathery woodland groundcover",
-    price: 15,
-    category: "Flora",
-  },
-
-  // STEP 04: DETAILS
-  {
-    id: "wood",
-    sku: "HRD-MOP",
-    name: "Mopani Branch",
-    note: "Sculptural weathered hardwood",
-    price: 16,
-    category: "Details",
-  },
-  {
-    id: "stone",
-    sku: "HRD-RIV",
-    name: "River Stone",
-    note: "Hand-selected smooth natural stone",
-    price: 11,
-    category: "Details",
-  },
-  {
-    id: "lava_rock",
-    sku: "HRD-LAV",
-    name: "Volcanic Accent Stones",
-    note: "Porous dark stones for natural texture",
-    price: 14,
-    category: "Details",
-  },
-];
-
-const categories: Category[] = ["Vessel", "Foundation", "Flora", "Details"];
-
-const DEFAULT_SOIL_RECIPES: Record<string, SoilLayerSpec[]> = {
-  forest: [
-    {
-      id: "leca",
-      sku: "SUB-LEC",
-      name: "River Gravel & Clay",
-      role: "Drainage Foundation",
-      depthMm: 22,
-      contour: 2,
-      colorTop: "#7A6A5E",
-      colorBottom: "#574B42",
-      accentColor: "#9E8D80",
-      price: 6,
-    },
-    {
-      id: "charcoal",
-      sku: "SUB-CHR",
-      name: "Activated Biochar",
-      role: "Natural Filtration",
-      depthMm: 14,
-      contour: -4,
-      colorTop: "#27272A",
-      colorBottom: "#18181B",
-      accentColor: "#52525B",
-      price: 7,
-    },
-    {
-      id: "humus",
-      sku: "SUB-HUM",
-      name: "Woodland Soil Blend",
-      role: "Nutrient-Rich Earth",
-      depthMm: 38,
-      contour: 10,
-      colorTop: "#452B1D",
-      colorBottom: "#2D1B11",
-      accentColor: "#6B432E",
-      price: 8,
-    },
-    {
-      id: "moss_base",
-      sku: "SUB-MOS",
-      name: "Living Moss Base",
-      role: "Moisture Blanket",
-      depthMm: 24,
-      contour: -8,
-      colorTop: "#5B7844",
-      colorBottom: "#3E542D",
-      accentColor: "#80A165",
-      price: 10,
-    },
-  ],
-  volcanic: [
-    {
-      id: "leca",
-      sku: "SUB-LEC",
-      name: "Expanded Clay Pebbles",
-      role: "Drainage Reservoir",
-      depthMm: 26,
-      contour: 4,
-      colorTop: "#7C4D34",
-      colorBottom: "#5A3724",
-      accentColor: "#A66A4B",
-      price: 6,
-    },
-    {
-      id: "charcoal",
-      sku: "SUB-CHR",
-      name: "Activated Biochar",
-      role: "Water Purification",
-      depthMm: 16,
-      contour: -3,
-      colorTop: "#27272A",
-      colorBottom: "#18181B",
-      accentColor: "#52525B",
-      price: 7,
-    },
-    {
-      id: "humus",
-      sku: "SUB-HUM",
-      name: "Tropical Bark & Humus",
-      role: "Root Foundation",
-      depthMm: 34,
-      contour: 8,
-      colorTop: "#4A3223",
-      colorBottom: "#332116",
-      accentColor: "#6B4832",
-      price: 8,
-    },
-    {
-      id: "moss_base",
-      sku: "SUB-MOS",
-      name: "Cushion Moss Carpet",
-      role: "Living Floor",
-      depthMm: 22,
-      contour: -6,
-      colorTop: "#527344",
-      colorBottom: "#3B5430",
-      accentColor: "#789E65",
-      price: 10,
-    },
-  ],
-  tropical: [
-    {
-      id: "leca",
-      sku: "SUB-LEC",
-      name: "Expanded Clay Pebbles",
-      role: "Moisture Reservoir",
-      depthMm: 24,
-      contour: 3,
-      colorTop: "#855236",
-      colorBottom: "#5E3924",
-      accentColor: "#B0704D",
-      price: 6,
-    },
-    {
-      id: "sand",
-      sku: "SUB-SND",
-      name: "Silica Quartz Ribbon",
-      role: "Sculpted Horizon",
-      depthMm: 16,
-      contour: 11,
-      colorTop: "#DFD3C3",
-      colorBottom: "#C7B7A3",
-      accentColor: "#F4EFE6",
-      price: 5,
-    },
-    {
-      id: "charcoal",
-      sku: "SUB-CHR",
-      name: "Activated Biochar",
-      role: "Freshness Layer",
-      depthMm: 14,
-      contour: -5,
-      colorTop: "#27272A",
-      colorBottom: "#18181B",
-      accentColor: "#52525B",
-      price: 7,
-    },
-    {
-      id: "humus",
-      sku: "SUB-HUM",
-      name: "Sphagnum & Coir Blend",
-      role: "Tropical Substrate",
-      depthMm: 32,
-      contour: 6,
-      colorTop: "#4E3424",
-      colorBottom: "#362217",
-      accentColor: "#755039",
-      price: 8,
-    },
-    {
-      id: "moss_base",
-      sku: "SUB-MOS",
-      name: "Live Cushion Moss",
-      role: "Soft Canopy Floor",
-      depthMm: 20,
-      contour: -7,
-      colorTop: "#4F7542",
-      colorBottom: "#37522D",
-      accentColor: "#729E62",
-      price: 10,
-    },
-  ],
+// Studio product photos, keyed by Studio option id.
+const optionImages: Partial<Record<string, string>> = {
+  fern: images.jar,
+  fittonia: images.fern,
+  moss: images.moss,
 };
+
+const options = STUDIO_OPTIONS;
+const categories = STUDIO_CATEGORIES;
 
 const SIGNATURE_PRESETS: Record<
   string,
@@ -378,7 +117,8 @@ export interface StudioEdition {
   edition: string;
   name: string;
   tagline: string;
-  price: number;
+  sku: string;
+  priceCents: number;
   image: string;
   vessel: string;
   vesselNote: string;
@@ -396,7 +136,8 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     edition: "Studio edition · 01",
     name: "The Cloud Forest",
     tagline: "A cascading temperate cloud-canopy with delicate button ferns and living moss mounds.",
-    price: 146,
+    sku: EDITION_PRODUCTS.cloud_forest.sku,
+    priceCents: EDITION_PRODUCTS.cloud_forest.priceCents,
     image: images.collection,
     vessel: "Tall Apothecary Jar · 14 in",
     vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
@@ -486,7 +227,8 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     edition: "Studio edition · 02",
     name: "Fern Study",
     tagline: "Contrasting architectural fronds, ruby nerve venation, and dark volcanic rock walls.",
-    price: 162,
+    sku: EDITION_PRODUCTS.fern_study.sku,
+    priceCents: EDITION_PRODUCTS.fern_study.priceCents,
     image: images.fern,
     vessel: "Tall Apothecary Jar · 14 in",
     vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
@@ -576,7 +318,8 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     edition: "Studio edition · 03",
     name: "Moss Garden",
     tagline: "A tranquil Japanese woodland Zen composition featuring ancient clubmoss and silica ribbons.",
-    price: 138,
+    sku: EDITION_PRODUCTS.moss_garden.sku,
+    priceCents: EDITION_PRODUCTS.moss_garden.priceCents,
     image: images.moss,
     vessel: "Tall Fluted Apothecary Jar · 14 in",
     vesselNote: "Helical ridged matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
@@ -714,9 +457,9 @@ function getStoredBuilderSelected(): string[] {
 function getStoredBuilderSoil(): SoilLayerSpec[] {
   try {
     const raw = sessionStorage.getItem(BUILDER_SOIL_STORAGE);
-    return raw ? JSON.parse(raw) : DEFAULT_SOIL_RECIPES.forest;
+    return raw ? JSON.parse(raw) : SOIL_RECIPES.forest;
   } catch {
-    return DEFAULT_SOIL_RECIPES.forest;
+    return SOIL_RECIPES.forest;
   }
 }
 
@@ -838,8 +581,8 @@ export function App() {
     [chosen]
   );
 
-  const subtotal = useMemo(
-    () => chosen.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  const subtotalCents = useMemo(
+    () => chosen.reduce((sum, item) => sum + item.priceCents * item.quantity, 0),
     [chosen]
   );
 
@@ -852,14 +595,14 @@ export function App() {
     const preset = SIGNATURE_PRESETS[presetKey];
     if (!preset) return;
     setSelected(preset.selected);
-    setSoilLayers(DEFAULT_SOIL_RECIPES[preset.recipeKey].map((l) => ({ ...l })));
+    setSoilLayers(SOIL_RECIPES[preset.recipeKey].map((l) => ({ ...l })));
     setActiveCategory("Vessel");
     navigate("/studio");
   };
 
   const toggleOption = (option: Option) => {
-    if (option.category === "Foundation" && DEFAULT_SOIL_RECIPES[option.id]) {
-      setSoilLayers(DEFAULT_SOIL_RECIPES[option.id].map((l) => ({ ...l })));
+    if (option.category === "Foundation" && SOIL_RECIPES[option.id]) {
+      setSoilLayers(SOIL_RECIPES[option.id].map((l) => ({ ...l })));
     }
     setSelected((current) => {
       const singleSelect = option.category === "Vessel" || option.category === "Foundation";
@@ -878,28 +621,32 @@ export function App() {
   const adjustOptionQuantity = (option: Option, delta: number) => {
     setSelected((current) => {
       const currentCount = current.filter((id) => id === option.id).length;
-      const nextCount = Math.max(0, Math.min(5, currentCount + delta));
+      const nextCount = Math.max(0, Math.min(MAX_ELEMENT_QUANTITY, currentCount + delta));
       const withoutOption = current.filter((id) => id !== option.id);
       return [...withoutOption, ...Array(nextCount).fill(option.id)];
     });
   };
 
-  const { openCart, itemCount, openTrackerModal, orders, addStandardItem } = useCart();
+  const { openCart, itemCount, openTrackerModal, orders, addStandardItem, addCustomBlueprint } =
+    useCart();
 
+  // Opens the jar for everyone; signing in is only required at checkout.
   const addEditionToJar = (edition: StudioEdition) => {
     addStandardItem({
       type: "signature_build",
       name: `${edition.name} (${edition.edition})`,
-      sku: `EDT-${edition.id.toUpperCase()}`,
-      price: edition.price,
+      sku: edition.sku,
       description: `${edition.vessel} · Includes live flora, stratified substrates & integrated smart lid`,
     });
-    if (currentUser) {
-      openCart();
-    } else {
-      setAuthMode("login");
-      navigate("/account");
-    }
+  };
+
+  /** Adds the current Studio design to the jar. Returns the steps still missing, if any. */
+  const addStudioDesignToJar = (): StudioCategory[] => {
+    const result = buildStudioBlueprint(selected, soilLayers);
+    // `in` narrows the union even without strictNullChecks.
+    if ("missing" in result) return result.missing;
+    addCustomBlueprint(result.blueprint);
+    return [];
   };
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
@@ -983,23 +730,14 @@ export function App() {
           )}
 
           {currentUser ? (
-            <>
-              <a
-                href="/account"
-                className="text-button account-link"
-                onClick={(e) => handleLinkClick(e, "/account")}
-                title={`Signed in as ${currentUser.name}`}
-              >
-                Account
-              </a>
-              <button
-                className="bag-button"
-                onClick={openCart}
-                title="Open Your Jar"
-              >
-                Your Jar <span>{itemCount || totalElements}</span>
-              </button>
-            </>
+            <a
+              href="/account"
+              className="text-button account-link"
+              onClick={(e) => handleLinkClick(e, "/account")}
+              title={`Signed in as ${currentUser.name}`}
+            >
+              Account
+            </a>
           ) : (
             <button
               className="nav-cta-button"
@@ -1010,6 +748,12 @@ export function App() {
               title="Sign in or create a TerraScape account"
             >
               Login / Create account
+            </button>
+          )}
+
+          {(currentUser || itemCount > 0) && (
+            <button className="bag-button" onClick={openCart} title="Open Your Jar">
+              Your Jar <span>{itemCount}</span>
             </button>
           )}
 
@@ -1039,8 +783,8 @@ export function App() {
             soilLayers={soilLayers}
             setSoilLayers={setSoilLayers}
             totalElements={totalElements}
-            subtotal={subtotal}
-            navigate={navigate}
+            subtotalCents={subtotalCents}
+            onAddToJar={addStudioDesignToJar}
           />
         )}
         {page === "edition" && (
@@ -1063,18 +807,9 @@ export function App() {
             onLogout={handleLogout}
           />
         )}
-        {page === "checkout" && (
-          <Checkout
-            chosen={chosen}
-            totalElements={totalElements}
-            subtotal={subtotal}
-            navigate={navigate}
-          />
-        )}
-        {page === "payments" && <Payments navigate={navigate} />}
       </main>
 
-      {page !== "build" && page !== "account" && page !== "checkout" && (
+      {page !== "build" && page !== "account" && (
         <footer>
           <div className="footer-brand">
             <div className="brand footer-wordmark">
@@ -1188,7 +923,7 @@ function Home({
             />
             <div className="image-caption">
               <span>Made to order</span>
-              <strong>From $96</strong>
+              <strong>From {formatCents(studioStartingPriceCents())}</strong>
             </div>
           </div>
         </div>
@@ -1416,8 +1151,8 @@ function Builder({
   soilLayers,
   setSoilLayers,
   totalElements,
-  subtotal,
-  navigate,
+  subtotalCents,
+  onAddToJar,
   allowMultiQuantityFlora: controlledAllowMultiQuantityFlora,
 }: {
   activeCategory: Category;
@@ -1428,11 +1163,22 @@ function Builder({
   soilLayers: SoilLayerSpec[];
   setSoilLayers: (layers: SoilLayerSpec[]) => void;
   totalElements: number;
-  subtotal: number;
-  navigate: (page: Page) => void;
+  subtotalCents: number;
+  /** Adds the design to the jar; returns the required steps that are still empty. */
+  onAddToJar: () => Category[];
   allowMultiQuantityFlora?: boolean;
 }) {
   const [soilDrawerOpen, setSoilDrawerOpen] = useState(false);
+  const [triedToAdd, setTriedToAdd] = useState(false);
+  // Derived from the live selection so the message clears as soon as the step is filled.
+  const missingSteps = SINGLE_CHOICE_CATEGORIES.filter(
+    (category) => !selected.some((id) => getStudioOption(id)?.category === category)
+  );
+  const showMissing = triedToAdd && missingSteps.length > 0;
+
+  const handleAddToJar = () => {
+    setTriedToAdd(onAddToJar().length > 0);
+  };
   // Feature toggle: By default FALSE (multi-select flora with NO duplicate quantities).
   // Can be toggled on/off internally or passed via prop.
   const [internalAllowMultiQuantityFlora, setInternalAllowMultiQuantityFlora] = useState(false);
@@ -1472,7 +1218,7 @@ function Builder({
           selectedIds={selected}
           soilLayers={soilLayers}
           captionTitle="Live Studio Preview"
-          captionPrice={`${totalElements} elements · $${subtotal}`}
+          captionPrice={`${totalElements} elements · ${formatCents(subtotalCents)}`}
         />
       </div>
 
@@ -1557,7 +1303,7 @@ function Builder({
                     if (qty === 0) adjustOptionQuantity(option, 1);
                   }}
                 >
-                  {option.image && <img src={option.image} alt="" />}
+                  {optionImages[option.id] && <img src={optionImages[option.id]} alt="" />}
                   <span className="check" aria-hidden="true">
                     {isSelected ? "✓" : "+"}
                   </span>
@@ -1590,8 +1336,8 @@ function Builder({
                     </button>
                   </div>
                   <b className="option-price">
-                    +${qty > 1 ? option.price * qty : option.price}
-                    {qty > 1 && <small> (${option.price} ea)</small>}
+                    +{formatCents(option.priceCents * Math.max(qty, 1))}
+                    {qty > 1 && <small> ({formatCents(option.priceCents)} ea)</small>}
                   </b>
                 </div>
               );
@@ -1606,7 +1352,7 @@ function Builder({
                 className={isSelected ? "option selected" : "option"}
                 onClick={() => toggleOption(option)}
               >
-                {option.image && <img src={option.image} alt="" />}
+                {optionImages[option.id] && <img src={optionImages[option.id]} alt="" />}
                 {isSingleSelect ? (
                   <span className="radio" aria-hidden="true">
                     <span className="radio-dot" />
@@ -1620,7 +1366,7 @@ function Builder({
                   <strong>{option.name}</strong>
                   <small>{option.note}</small>
                 </span>
-                <b>+${option.price}</b>
+                <b>+{formatCents(option.priceCents)}</b>
               </button>
             );
           })}
@@ -1657,8 +1403,8 @@ function Builder({
                         <span>Depth</span>
                         <input
                           type="range"
-                          min={12}
-                          max={48}
+                          min={SOIL_DEPTH_RANGE_MM.min}
+                          max={SOIL_DEPTH_RANGE_MM.max}
                           value={layer.depthMm}
                           onChange={(e) =>
                             updateSoilLayer(layer.id, "depthMm", Number(e.target.value))
@@ -1669,8 +1415,8 @@ function Builder({
                         <span>Wave contour</span>
                         <input
                           type="range"
-                          min={-14}
-                          max={14}
+                          min={SOIL_CONTOUR_RANGE.min}
+                          max={SOIL_CONTOUR_RANGE.max}
                           value={layer.contour}
                           onChange={(e) =>
                             updateSoilLayer(layer.id, "contour", Number(e.target.value))
@@ -1685,10 +1431,39 @@ function Builder({
           </div>
         )}
 
+        {showMissing && (
+          <div className="builder-missing" role="alert">
+            <p>
+              Choose a {missingSteps.map((category) => category.toLowerCase()).join(" and a ")}{" "}
+              before adding your design to the jar.
+            </p>
+            <div className="builder-missing-actions">
+              {missingSteps.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className="text-button"
+                  onClick={() => setActiveCategory(category)}
+                >
+                  Go to step 0{categories.indexOf(category) + 1} · {category}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === categories.length && (
+          <p className="builder-assembly-note">
+            Courier and pickup orders are planted and assembled in our Los Angeles studio
+            (+{formatCents(ASSEMBLY_FEE_CENTS)} per build). Choose nationwide shipping in your jar to
+            receive it as a DIY kit instead.
+          </p>
+        )}
+
         <div className="builder-footer">
           <div>
-            <small>Current total</small>
-            <strong>${subtotal}</strong>
+            <small>Design total · before assembly &amp; delivery</small>
+            <strong>{formatCents(subtotalCents)}</strong>
           </div>
           {step < categories.length ? (
             <button
@@ -1698,8 +1473,8 @@ function Builder({
               Continue <ArrowIcon />
             </button>
           ) : (
-            <button className="primary-button" onClick={() => navigate("checkout")}>
-              Review design <ArrowIcon />
+            <button className="primary-button" onClick={handleAddToJar}>
+              Add to Your Jar <ArrowIcon />
             </button>
           )}
         </div>
@@ -1882,7 +1657,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "How long does it take to build and ship my custom terrarium?",
-        a: "Because every TerraScape is assembled to order in our Los Angeles, CA studio, please allow 3–5 business days for studio preparation and climate-safe delivery.",
+        a: `Studio builds are soldered, planted and rested for ${QUARANTINE_HOURS} hours in our Los Angeles, CA studio, then hand-delivered by our Southern California courier or ready for pickup in ${DELIVERY_OPTIONS.courier.leadBusinessDays.min}–${DELIVERY_OPTIONS.courier.leadBusinessDays.max} business days. Nationwide orders ship as DIY kits within ${DELIVERY_OPTIONS.shipped.leadBusinessDays.min}–${DELIVERY_OPTIONS.shipped.leadBusinessDays.max} business days; shipping is ${formatCents(SHIPPED_FEE_CENTS)}, free on orders over ${formatCents(FREE_SHIPPING_THRESHOLD_CENTS)}.`,
       },
     ],
   },
@@ -1916,7 +1691,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "What if a plant arrives damaged?",
-        a: "Every order is backed by our 30-Day Living Arrival Guarantee. If your glass vessel or any plant arrives in less than healthy condition, send us a photo and we will replace it free of charge.",
+        a: `Every order is backed by our ${ARRIVAL_GUARANTEE_DAYS}-Day Living Arrival Guarantee. If your glass vessel or any plant arrives in less than healthy condition, send us a photo and we will replace it free of charge.`,
       },
     ],
   },
@@ -2284,9 +2059,9 @@ function Account({
                 </strong>
               </div>
               <div className="account-profile-row">
-                <span>Membership Tier</span>
-                <strong style={{ color: "var(--ts-forest)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-                  Studio Patron · Los Angeles, CA
+                <span>Member Since</span>
+                <strong>
+                  {new Date(currentUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                 </strong>
               </div>
               <div className="account-profile-row">
@@ -2383,7 +2158,9 @@ function Account({
               : "Sign in to access Your Jar, view your saved terrarium designs, and track your builds."}
           </p>
 
-          {/* Google Sign In One-Click Button */}
+          {/* Google sign-in is simulated until Phase 3 auth, so it only shows in development builds. */}
+          {import.meta.env.DEV && (
+          <>
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -2450,6 +2227,8 @@ function Account({
               Or with email
             </span>
           </div>
+          </>
+          )}
 
           {errorMsg && (
             <div
@@ -2471,16 +2250,23 @@ function Account({
             {mode === "signup" && (
               <label>
                 Full name
-                <input required name="fullName" type="text" placeholder="Your name" defaultValue="Vicky Adebona" />
+                <input required name="fullName" type="text" placeholder="Your name" autoComplete="name" />
               </label>
             )}
             <label>
               Email address
-              <input required name="email" type="email" placeholder="you@example.com" defaultValue="vicky@verdantstudio.com" />
+              <input required name="email" type="email" placeholder="you@example.com" autoComplete="email" />
             </label>
             <label>
               Password
-              <input required name="password" type="password" placeholder="At least 8 characters" defaultValue="password123" />
+              <input
+                required
+                name="password"
+                type="password"
+                placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
+                minLength={mode === "signup" ? 8 : undefined}
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              />
             </label>
             <button className="primary-button" type="submit" disabled={isLoading}>
               {mode === "signup" ? "Create my account" : "Sign in"} <ArrowIcon />
@@ -2489,212 +2275,6 @@ function Account({
           <small>By continuing, you agree to our Terms and Privacy Policy.</small>
         </div>
       )}
-    </section>
-  );
-}
-
-function Checkout({
-  chosen,
-  totalElements,
-  subtotal,
-  navigate,
-}: {
-  chosen: ChosenOption[];
-  totalElements: number;
-  subtotal: number;
-  navigate: (page: Page) => void;
-}) {
-  const { user, isAuthenticated, openAuthModal } = useAuth();
-  const shipping = subtotal >= 150 ? 0 : 18;
-
-  if (!isAuthenticated) {
-    return (
-      <section className="checkout-page" style={{ minHeight: "60vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <div className="checkout-main" style={{ maxWidth: "560px", textAlign: "center", margin: "0 auto" }}>
-          <p className="eyebrow">Authentication Required</p>
-          <h1>Save your world to checkout</h1>
-          <p style={{ margin: "1rem 0 2rem", color: "var(--ts-muted)", lineHeight: 1.6 }}>
-            Every TerraScape is an individually serialized living ecosystem. An account is required so Andrew can attach your custom blueprint to your workshop build tray and live order tracker.
-          </p>
-          <button
-            className="primary-button"
-            onClick={() =>
-              openAuthModal({
-                title: "Save Your Terrarium Before Checkout",
-                message:
-                  "Sign in or create an account to finalize your custom terrarium order and track Andrew's workshop assembly.",
-              })
-            }
-          >
-            Sign in or create account <ArrowIcon />
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  const nameParts = (user?.name || "Vicky Adebona").split(" ");
-  const firstName = nameParts[0] || "Vicky";
-  const lastName = nameParts.slice(1).join(" ") || "Adebona";
-
-  return (
-    <section className="checkout-page">
-      <div className="checkout-main">
-        <button className="back-link" onClick={() => navigate("build")}>
-          ← Return to studio
-        </button>
-        <p className="eyebrow">Final details</p>
-        <h1>Your world is ready.</h1>
-        <div className="checkout-progress" aria-label="Checkout progress">
-          <div className="checkout-progress-bar">
-            <span className="segment filled" />
-            <span className="segment" />
-            <span className="segment" />
-          </div>
-          <div className="checkout-progress-labels">
-            <span className="active">Delivery</span>
-            <span>Payment</span>
-            <span>Confirmation</span>
-          </div>
-        </div>
-        <form
-          className="delivery-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            navigate("payments");
-          }}
-        >
-          <h2>Where should it grow?</h2>
-          <div className="form-row">
-            <label>
-              First name
-              <input required defaultValue={firstName} />
-            </label>
-            <label>
-              Last name
-              <input required defaultValue={lastName} />
-            </label>
-          </div>
-          <label>
-            Street address
-            <input required defaultValue="1420 Abbot Kinney Blvd" />
-          </label>
-          <div className="form-row three">
-            <label>
-              City
-              <input required defaultValue="Venice" />
-            </label>
-            <label>
-              State
-              <input required defaultValue="CA" />
-            </label>
-            <label>
-              ZIP code
-              <input required defaultValue="90291" />
-            </label>
-          </div>
-          <label className="delivery-choice">
-            <input type="radio" defaultChecked name="delivery" />
-            <span>
-              <strong>Hand-delivered by Studio Courier</strong>
-              <small>Climate-safe delivery in Los Angeles / Orange County</small>
-            </span>
-            <b>{shipping ? `$${shipping}` : "Complimentary"}</b>
-          </label>
-          <button className="primary-button" type="submit">
-            Continue to Stripe Payment <ArrowIcon />
-          </button>
-        </form>
-      </div>
-
-      <aside className="order-summary">
-        <p className="eyebrow">Your terrarium</p>
-        <img
-          src={images.hero}
-          alt="Your custom terrarium"
-          className="summary-render"
-        />
-        <div className="summary-title">
-          <h2>Custom composition</h2>
-          <span>{totalElements} elements</span>
-        </div>
-        <ul>
-          {chosen.map((item) => (
-            <li key={item.id}>
-              <span>
-                {item.name}
-                {item.quantity > 1 ? ` × ${item.quantity}` : ""}
-                <small>{item.category}</small>
-              </span>
-              <b>${item.price * item.quantity}</b>
-            </li>
-          ))}
-        </ul>
-        <div className="totals">
-          <p>
-            <span>Subtotal</span>
-            <b>${subtotal}</b>
-          </p>
-          <p>
-            <span>Delivery</span>
-            <b>{shipping ? `$${shipping}` : "Complimentary"}</b>
-          </p>
-          <p className="total">
-            <span>Total</span>
-            <b>${subtotal + shipping}</b>
-          </p>
-        </div>
-      </aside>
-    </section>
-  );
-}
-
-function Payments({ navigate }: { navigate: (page: Page) => void }) {
-  const { openCheckoutModal, openTrackerModal, orders, subtotal } = useCart();
-
-  return (
-    <section className="payments-page">
-      <div className="payment-card">
-        <span className="secure-icon">S</span>
-        <p className="eyebrow">Stripe Embedded In-App Payment</p>
-        <h1>256-Bit Encrypted Checkout</h1>
-        <p>
-          Your dynamic Bill-of-Materials and circuit specifications are validated directly
-          against our engineering engine. Complete payment with zero external redirect.
-        </p>
-        <div className="integration-list">
-          <span>✓ Express Wallets (Apple Pay, Google Pay, Link)</span>
-          <span>✓ Dynamic BOM &amp; Coordinate Blueprint Validation</span>
-          <span>✓ Live 5-Stage Workshop Assembly Tracker</span>
-        </div>
-        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "24px" }}>
-          <button
-            className="primary-button"
-            onClick={openCheckoutModal}
-            style={{ cursor: "pointer" }}
-          >
-            Launch Stripe Checkout (${subtotal || 140}) <ArrowIcon />
-          </button>
-          {orders.length > 0 && (
-            <button
-              className="text-button"
-              style={{
-                border: "1px solid rgba(52, 211, 153, 0.4)",
-                padding: "10px 18px",
-                borderRadius: "12px",
-                color: "#34d399",
-                cursor: "pointer",
-              }}
-              onClick={() => openTrackerModal()}
-            >
-              Open Workshop Tracker ({orders.length})
-            </button>
-          )}
-          <button className="text-button" onClick={() => navigate("home")} style={{ cursor: "pointer" }}>
-            Return to collection
-          </button>
-        </div>
-      </div>
     </section>
   );
 }

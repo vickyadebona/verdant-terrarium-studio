@@ -1,12 +1,26 @@
 import type {
+  BlueprintLine,
   CartItem,
   FulfillmentType,
   OrderStatusInfo,
-  OrderStage,
   SerializedBlueprint,
   StageHistoryEntry,
 } from '../types/terrarium';
-import { CATALOG_ITEMS, HARDWARE_MODULES, SUBSTRATES, VESSELS } from '../data';
+import {
+  ASSEMBLY_FEE_CENTS,
+  ESTIMATED_TAX_RATE,
+  MAX_ELEMENT_QUANTITY,
+  getProduct,
+  type ProductKind,
+} from '../catalog';
+import {
+  DELIVERY_OPTIONS,
+  addBusinessDays,
+  shippingCentsFor,
+  type ShippingOption,
+} from '../catalog/delivery';
+
+export type { ShippingOption };
 
 export interface CheckoutCustomerData {
   name: string;
@@ -20,158 +34,155 @@ export interface CheckoutShippingData {
   state: string;
   zip: string;
   country?: string;
-  deliveryMethod: FulfillmentType;
-  deliveryOptionTitle: string;
+  shippingOption: ShippingOption;
   deliveryNotes?: string;
 }
 
-export interface ValidationResult {
+export interface OrderQuote {
+  /** False when the cart is empty or holds a line the catalog can't price. */
   valid: boolean;
+  /** True when a client-side price disagreed with the catalog. */
   tamperDetected: boolean;
-  subtotal: number;
-  shippingFee: number;
-  taxAmount: number;
-  total: number;
-  itemizedLineItems: Array<{
+  unknownSkus: string[];
+  /** Catalog prices of the jar's items. */
+  subtotalCents: number;
+  /** Studio assembly for custom builds; zero when the order ships as DIY kits. */
+  assemblyCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  lines: Array<{
     title: string;
     sku: string;
     quantity: number;
-    unitPrice: number;
-    lineTotal: number;
+    unitPriceCents: number;
+    lineTotalCents: number;
   }>;
 }
 
+function priceLine(line: BlueprintLine, kinds: ProductKind[], maxQuantity: number): number | null {
+  const product = getProduct(line.sku);
+  if (!product || !kinds.includes(product.kind)) return null;
+  if (!Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > maxQuantity) return null;
+  return product.priceCents * line.quantity;
+}
+
+/** Catalog price of a Studio blueprint before any assembly fee, or null if any line is invalid. */
+export function priceBlueprint(blueprint: SerializedBlueprint): number | null {
+  const parts = [
+    priceLine(blueprint.vessel, ['vessel'], 1),
+    priceLine(blueprint.foundation, ['foundation'], 1),
+    ...blueprint.elements.map((line) => priceLine(line, ['flora', 'hardscape'], MAX_ELEMENT_QUANTITY)),
+  ];
+  if (parts.some((part) => part === null)) return null;
+  return parts.reduce<number>((sum, part) => sum + (part ?? 0), 0);
+}
+
+/** Authoritative unit price for a cart line before assembly, or null if the catalog can't price it. */
+export function verifiedUnitPriceCents(item: Pick<CartItem, 'type' | 'sku' | 'blueprint'>): number | null {
+  if (item.type === 'custom_blueprint') {
+    return item.blueprint ? priceBlueprint(item.blueprint) : null;
+  }
+  const expectedKind: ProductKind = item.type === 'signature_build' ? 'edition' : 'hardware';
+  const product = getProduct(item.sku);
+  return product && product.kind === expectedKind ? product.priceCents : null;
+}
+
+/** Assembly fee for every custom build in the jar when the order is planted in the studio. */
+export function assemblyCentsFor(items: CartItem[], option: ShippingOption): number {
+  if (!DELIVERY_OPTIONS[option].assembled) return 0;
+  const builds = items
+    .filter((item) => item.type === 'custom_blueprint')
+    .reduce((sum, item) => sum + item.quantity, 0);
+  return builds * ASSEMBLY_FEE_CENTS;
+}
+
 /**
- * Validates cart items against the authoritative catalog data to prevent client tampering.
+ * Prices a cart against the catalog. Every total shown to the customer
+ * (cart drawer, checkout, order record) comes from this one function.
  */
-export function validateCartPricing(
-  items: CartItem[],
-  deliveryMethod: FulfillmentType
-): ValidationResult {
-  let subtotal = 0;
+export function quoteOrder(items: CartItem[], shippingOption: ShippingOption): OrderQuote {
+  let subtotalCents = 0;
   let tamperDetected = false;
-  const itemizedLineItems: ValidationResult['itemizedLineItems'] = [];
+  const unknownSkus: string[] = [];
+  const lines: OrderQuote['lines'] = [];
 
   for (const item of items) {
-    if (item.type === 'custom_blueprint' && item.blueprint) {
-      // Re-verify the blueprint using master data catalogs
-      const vessel = VESSELS.find((v) => v.sku === item.blueprint?.vessel.sku);
-      const vesselCost = vessel ? vessel.price : item.blueprint.vessel.price;
-
-      const substrateCost = item.blueprint.substrateStackBottomToTop.reduce((sum, layer) => {
-        const cfg = SUBSTRATES.find((s) => s.sku === layer.sku);
-        return sum + (cfg ? cfg.pricePerLayer : layer.price);
-      }, 0);
-
-      const itemsCost = item.blueprint.specimens.reduce((sum, spec) => {
-        const cat = CATALOG_ITEMS.find((c) => c.sku === spec.sku);
-        return sum + (cat ? cat.price : spec.price);
-      }, 0);
-
-      const hardwareCost = item.blueprint.hardwareModules.reduce((sum, hw) => {
-        const h = HARDWARE_MODULES.find((m) => m.sku === hw.sku);
-        return sum + (h ? h.price : hw.price);
-      }, 0);
-
-      const assemblyFee = item.fulfillmentType === 'assembled_local' ? 25 : 0;
-      const verifiedUnitCost = vesselCost + substrateCost + itemsCost + hardwareCost + assemblyFee;
-
-      if (Math.abs(verifiedUnitCost - item.price) > 0.01) {
-        tamperDetected = true;
-      }
-
-      const lineTotal = verifiedUnitCost * item.quantity;
-      subtotal += lineTotal;
-
-      itemizedLineItems.push({
-        title: item.name,
-        sku: item.sku,
-        quantity: item.quantity,
-        unitPrice: verifiedUnitCost,
-        lineTotal,
-      });
-    } else if (item.type === 'hardware') {
-      const hw = HARDWARE_MODULES.find((h) => h.sku === item.sku);
-      const unitPrice = hw ? hw.price : item.price;
-      const lineTotal = unitPrice * item.quantity;
-      subtotal += lineTotal;
-
-      itemizedLineItems.push({
-        title: item.name,
-        sku: item.sku,
-        quantity: item.quantity,
-        unitPrice,
-        lineTotal,
-      });
-    } else {
-      // Signature builds or accessories
-      const lineTotal = item.price * item.quantity;
-      subtotal += lineTotal;
-
-      itemizedLineItems.push({
-        title: item.name,
-        sku: item.sku,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        lineTotal,
-      });
+    const unitPriceCents = verifiedUnitPriceCents(item);
+    if (unitPriceCents === null || !Number.isInteger(item.quantity) || item.quantity < 1) {
+      unknownSkus.push(item.sku);
+      continue;
     }
+    if (unitPriceCents !== item.unitPriceCents) tamperDetected = true;
+
+    const lineTotalCents = unitPriceCents * item.quantity;
+    subtotalCents += lineTotalCents;
+    lines.push({
+      title: item.name,
+      sku: item.sku,
+      quantity: item.quantity,
+      unitPriceCents,
+      lineTotalCents,
+    });
   }
 
-  // Calculate fulfillment fee:
-  // - If any item is assembled_local and courier is chosen: $18 (or $0 for local studio pickup)
-  // - For nationwide DIY kit shipped: Complimentary ($0) on orders >= $150, else $18
-  const hasAssembled = items.some((i) => i.fulfillmentType === 'assembled_local') || deliveryMethod === 'assembled_local';
-  let shippingFee = 0;
-  if (!hasAssembled) {
-    shippingFee = subtotal >= 150 ? 0 : 18;
-  } else {
-    // If local assembly, default to Studio Courier ($18) unless studio pickup selected
-    shippingFee = 18;
-  }
-
-  // Tax calculation (estimated 9.5% for California origin or 8% standard)
-  const taxAmount = Math.round((subtotal + shippingFee) * 0.095);
-  const total = subtotal + shippingFee + taxAmount;
+  const valid = items.length > 0 && unknownSkus.length === 0;
+  const assemblyCents = valid ? assemblyCentsFor(items, shippingOption) : 0;
+  const shippingCents = valid ? shippingCentsFor(shippingOption, subtotalCents) : 0;
+  const taxCents = Math.round((subtotalCents + assemblyCents + shippingCents) * ESTIMATED_TAX_RATE);
 
   return {
-    valid: true,
+    valid,
     tamperDetected,
-    subtotal,
-    shippingFee,
-    taxAmount,
-    total,
-    itemizedLineItems,
+    unknownSkus,
+    subtotalCents,
+    assemblyCents,
+    shippingCents,
+    taxCents,
+    totalCents: subtotalCents + assemblyCents + shippingCents + taxCents,
+    lines,
   };
 }
+
+const deliveryMethodFor = (option: ShippingOption): FulfillmentType =>
+  DELIVERY_OPTIONS[option].assembled ? 'assembled_local' : 'diy_kit_shipped';
 
 /**
  * Creates an authoritative OrderStatusInfo record with initial BLUEPRINT_RECEIVED stage,
  * deterministic Stripe PaymentIntent simulation, and workshop tracking payload.
+ * Throws if the cart can't be priced, so an empty or tampered cart never becomes an order.
  */
 export function createStripeOrder(params: {
   items: CartItem[];
   customer: CheckoutCustomerData;
   shipping: CheckoutShippingData;
-  shippingFeeOverride?: number;
   paymentMethod: {
     brand: string;
     last4: string;
     wallet?: string;
   };
 }): { order: OrderStatusInfo; stripeIntent: Record<string, unknown> } {
-  const validation = validateCartPricing(params.items, params.shipping.deliveryMethod);
-  const finalShippingFee =
-    params.shippingFeeOverride !== undefined ? params.shippingFeeOverride : validation.shippingFee;
-  const finalTax = Math.round((validation.subtotal + finalShippingFee) * 0.095);
-  const finalTotal = validation.subtotal + finalShippingFee + finalTax;
+  const quote = quoteOrder(params.items, params.shipping.shippingOption);
+  if (!quote.valid) {
+    throw new Error(
+      params.items.length === 0
+        ? 'Your jar is empty.'
+        : `These items are no longer available: ${quote.unknownSkus.join(', ')}`
+    );
+  }
+
+  // Store the verified prices, not whatever the client sent.
+  const verifiedItems = params.items.map((item, index) => ({
+    ...item,
+    unitPriceCents: quote.lines[index].unitPriceCents,
+  }));
 
   const now = new Date();
   const orderId = `TS-${now.getFullYear().toString().slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
   const paymentIntentId = `pi_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
-  // Estimated delivery: 4 to 6 business days for quarantine and assembly
-  const estDelivery = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+  const delivery = DELIVERY_OPTIONS[params.shipping.shippingOption];
+  const estDelivery = addBusinessDays(now, delivery.leadBusinessDays.max).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -197,29 +208,34 @@ export function createStripeOrder(params: {
       state: params.shipping.state,
       zip: params.shipping.zip,
     },
-    deliveryMethod: params.shipping.deliveryMethod,
-    deliveryOptionTitle: params.shipping.deliveryOptionTitle,
+    deliveryMethod: deliveryMethodFor(params.shipping.shippingOption),
+    deliveryOptionTitle: delivery.title,
     deliveryNotes: params.shipping.deliveryNotes,
-    items: params.items,
-    subtotal: validation.subtotal,
-    shippingFee: finalShippingFee,
-    taxAmount: finalTax,
-    total: finalTotal,
+    items: verifiedItems,
+    subtotalCents: quote.subtotalCents,
+    assemblyCents: quote.assemblyCents,
+    shippingCents: quote.shippingCents,
+    taxCents: quote.taxCents,
+    totalCents: quote.totalCents,
     stripePaymentIntentId: paymentIntentId,
     paymentMethodDetails: params.paymentMethod,
-    currentStage: 'BLUEPRINT_RECEIVED' as OrderStage,
+    currentStage: 'BLUEPRINT_RECEIVED',
     stageHistory: initialHistory,
     createdAt: now.toISOString(),
     estimatedDeliveryDate: estDelivery,
-    trackingNumber: `1Z99999999${Math.floor(10000000 + Math.random() * 90000000)}`,
-    carrier: 'UPS Ground / Shippo Insulated Cold-Chain',
+    // Only shipped kits get a carrier tracking number; courier and pickup orders are handed over by the studio.
+    trackingNumber:
+      params.shipping.shippingOption === 'shipped'
+        ? `1Z99999999${Math.floor(10000000 + Math.random() * 90000000)}`
+        : undefined,
+    carrier: delivery.carrier,
   };
 
   // Serialized Stripe PaymentIntent Payload
   const stripeIntent = {
     id: paymentIntentId,
     object: 'payment_intent',
-    amount: Math.round(finalTotal * 100), // in cents
+    amount: quote.totalCents,
     currency: 'usd',
     status: 'succeeded',
     customer: {
@@ -230,9 +246,9 @@ export function createStripeOrder(params: {
       order_id: orderId,
       terrascape_version: '1.0.0',
       item_count: params.items.length,
-      delivery_mode: params.shipping.deliveryMethod,
+      delivery_mode: order.deliveryMethod,
       blueprints: JSON.stringify(
-        params.items
+        verifiedItems
           .filter((i) => i.blueprint)
           .map((i) => ({
             id: i.id,
@@ -247,7 +263,7 @@ export function createStripeOrder(params: {
         {
           id: `ch_${Math.random().toString(36).slice(2, 10)}`,
           paid: true,
-          amount_captured: Math.round(finalTotal * 100),
+          amount_captured: quote.totalCents,
           receipt_url: `https://pay.stripe.com/receipts/terrascape/${orderId}`,
           payment_method_details: {
             type: 'card',

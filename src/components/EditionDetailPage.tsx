@@ -1,4 +1,6 @@
 import type { Page, EditionKey, StudioEdition } from "../App";
+import { formatCents } from "../catalog/money";
+import { deliveryFeeLabel } from "../catalog/delivery";
 
 interface EditionDetailPageProps {
   edition: StudioEdition;
@@ -86,8 +88,11 @@ export function EditionDetailPage({
           </div>
 
           <div className="edition-price-row">
-            <strong>${edition.price}</strong>
-            <span>Tax included · Free white-glove local Los Angeles delivery or insured DIY kit</span>
+            <strong>{formatCents(edition.priceCents)}</strong>
+            <span>
+              Plus tax · Southern California courier {deliveryFeeLabel("courier")}, free studio pickup, or
+              nationwide as a DIY kit ({deliveryFeeLabel("shipped", edition.priceCents)} shipping)
+            </span>
           </div>
 
           <div className="edition-actions-row">
@@ -98,7 +103,7 @@ export function EditionDetailPage({
               style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem" }}
             >
               <JarIcon />
-              Add to Your Jar — ${edition.price}
+              Add to Your Jar — {formatCents(edition.priceCents)}
             </button>
             <button
               type="button"
@@ -347,7 +352,7 @@ export function EditionDetailPage({
             style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem" }}
           >
             <JarIcon />
-            Add to Your Jar — ${edition.price}
+            Add to Your Jar — {formatCents(edition.priceCents)}
           </button>
           <button
             type="button"

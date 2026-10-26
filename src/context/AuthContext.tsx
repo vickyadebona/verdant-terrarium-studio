@@ -10,31 +10,17 @@ import type {
 const SESSION_STORAGE_KEY = 'terrascape_auth_session_v1';
 const USERS_STORAGE_KEY = 'terrascape_registered_users_v1';
 
-// Pre-seeded demo accounts
-const DEFAULT_ACCOUNTS: Array<{ user: User; passwordHash: string }> = [
-  {
-    user: {
-      id: 'usr_vicky_verdant',
-      name: 'Vicky Adebona',
-      email: 'vicky@verdantstudio.com',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-      provider: 'google',
-      createdAt: '2026-01-15T08:00:00.000Z',
-    },
-    passwordHash: 'password123',
-  },
-  {
-    user: {
-      id: 'usr_andrew_hardware',
-      name: 'Andrew Hung',
-      email: 'andrew@terrascape.hardware',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-      provider: 'credentials',
-      createdAt: '2026-02-01T12:00:00.000Z',
-    },
-    passwordHash: 'password123',
-  },
-];
+// Accounts the old demo build seeded with a shared password. Remove them from
+// browsers that still have them so nobody can sign in with those credentials.
+const LEGACY_SEEDED_USER_IDS = new Set(['usr_vicky_verdant', 'usr_andrew_hardware']);
+
+type StoredAccount = { user: User; passwordHash: string };
+
+function readStoredAccounts(): StoredAccount[] {
+  const raw = localStorage.getItem(USERS_STORAGE_KEY);
+  const parsed: unknown = raw ? JSON.parse(raw) : [];
+  return Array.isArray(parsed) ? (parsed as StoredAccount[]) : [];
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -44,15 +30,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalConfig, setAuthModalConfig] = useState<AuthModalConfig | null>(null);
 
-  // Initialize registered accounts in localStorage if not present
+  // Drop the legacy seeded demo accounts if this browser still has them
   useEffect(() => {
     try {
-      const existing = localStorage.getItem(USERS_STORAGE_KEY);
-      if (!existing) {
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
+      const accounts = readStoredAccounts();
+      const kept = accounts.filter((account) => !LEGACY_SEEDED_USER_IDS.has(account.user?.id));
+      if (kept.length !== accounts.length) {
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(kept));
       }
     } catch (e) {
-      console.warn('Unable to initialize registered users cache', e);
+      console.warn('Unable to clean up registered users cache', e);
     }
   }, []);
 
@@ -62,7 +49,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
       if (savedSession) {
         const parsed = JSON.parse(savedSession) as User;
-        setUser(parsed);
+        if (LEGACY_SEEDED_USER_IDS.has(parsed?.id)) {
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+        } else {
+          setUser(parsed);
+        }
       }
     } catch (e) {
       console.warn('Unable to restore auth session', e);
@@ -100,13 +91,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let authenticatedUser: User;
 
         if (provider === 'google') {
-          // One-Click Google OAuth (NextAuth / Auth.js standard payload)
+          // Google sign-in is simulated until Phase 3 auth, so it only exists in development builds.
+          if (!import.meta.env.DEV) {
+            setIsLoading(false);
+            return { ok: false, error: 'Google sign-in is not available yet. Please use email instead.' };
+          }
           authenticatedUser = {
             id: `usr_g_${Date.now()}`,
-            name: credentials?.name || 'Vicky Adebona',
-            email: credentials?.email || 'vicky@verdantstudio.com',
-            avatarUrl:
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            name: credentials?.name || 'Google Test User',
+            email: credentials?.email || 'google.tester@example.test',
             provider: 'google',
             createdAt: new Date().toISOString(),
           };
@@ -121,12 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { ok: false, error: 'Email and password are required' };
           }
 
-          const rawUsers = localStorage.getItem(USERS_STORAGE_KEY);
-          const usersList: Array<{ user: User; passwordHash: string }> = rawUsers
-            ? JSON.parse(rawUsers)
-            : DEFAULT_ACCOUNTS;
+          const usersList = readStoredAccounts().filter(
+            (account) => !LEGACY_SEEDED_USER_IDS.has(account.user?.id)
+          );
 
           if (credentials?.isSignUp) {
+            if (password.length < 8) {
+              setIsLoading(false);
+              return { ok: false, error: 'Use at least 8 characters for your password.' };
+            }
             const exists = usersList.find((u) => u.user.email.toLowerCase() === email);
             if (exists) {
               setIsLoading(false);

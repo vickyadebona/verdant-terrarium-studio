@@ -1526,6 +1526,37 @@ a.text-button {
   font-weight: 400;
 }
 
+.builder-missing {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ts-border);
+  border-left: 3px solid var(--ts-clay);
+  background: var(--ts-parchment);
+  color: var(--ts-ink);
+  font-size: 0.9rem;
+}
+
+.builder-missing p {
+  margin: 0 0 0.4rem;
+}
+
+.builder-missing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.builder-missing-actions .text-button {
+  color: var(--ts-forest);
+  text-decoration: underline;
+}
+
+.builder-assembly-note {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--ts-muted);
+}
+
 /* Account, Checkout & Payments Pages */
 .account-page,
 .checkout-page {

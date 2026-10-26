@@ -26,14 +26,12 @@ src/
 ├── Terrarium3DShowcase.tsx            # Three.js WebGL 3D showcase with OrbitControls & mist particles
 ├── types/
 │   ├── auth.ts                        # User credentials, session profiles & auth state types
-│   └── terrarium.ts                   # Core domain types (Vessel, Substrate, Hardware, Order)
-├── data/
-│   ├── index.ts                       # Barrel export for master catalogs
-│   ├── vessels.tsx                    # Hand-blown glass vessels & smart lid specs
-│   ├── substrates.ts                  # 6 geological soil & drainage layers
-│   ├── catalogItems.tsx               # Curated botanical & hardscape vector catalog
-│   ├── hardware.ts                    # 4 custom PCB / misting circuit modules
-│   └── presets.ts                     # Curated ecosystem presets (Rainforest, Cloud Forest, etc.)
+│   └── terrarium.ts                   # Blueprint, cart and order types (prices in integer cents)
+├── catalog/
+│   ├── index.ts                       # Single product catalog: Studio options, soil recipes, editions, accessories, fees
+│   ├── delivery.ts                    # Delivery options, fees, lead times and quarantine length
+│   ├── money.ts                       # formatCents() / formatCentsExact() display helpers
+│   └── studioBlueprint.ts             # Turns Studio selections into a SerializedBlueprint
 ├── utils/
 │   ├── router.ts                      # Clean client-side pathname router (/collections, /studio, etc.)
 │   ├── stripeCheckoutEngine.ts        # Authoritative pricing validator & 5-stage order simulator
@@ -45,6 +43,7 @@ src/
     ├── CartDrawer.tsx                 # Slide-over cart drawer with itemized line items
     ├── AuthModal.tsx                  # Sign up / sign in modal (warm botanical parchment theme)
     ├── StripeCheckoutModal.tsx        # In-app Stripe PaymentElement & address collection modal
+    ├── DeliveryOptionPicker.tsx       # Shared order-level delivery choice (cart drawer + checkout)
     ├── OrderTrackerModal.tsx          # 5-stage living vivarium assembly & quarantine tracker
     └── EditionDetailPage.tsx         # Detailed showcase page for Andrew's Signature Editions
 ```
@@ -102,8 +101,11 @@ flowchart TD
 - Gracefully falls back to high-resolution photography if WebGL is unavailable on the client device.
 
 ### D. Authoritative Pricing & Tamper Protection (`src/utils/stripeCheckoutEngine.ts`)
-- Client-side DOM manipulation cannot spoof prices: `validateCartPricing()` recalculates subtotals against immutable master catalog constants (`VESSELS`, `SUBSTRATES`, `CATALOG_ITEMS`, `HARDWARE_MODULES`).
-- Flags tampering if the submitted price deviates by more than $\$0.01$.
+- All prices are integer US cents and come from `src/catalog`.
+- `quoteOrder()` reprices every cart line from the catalog, flags any client price that disagrees, and marks the quote invalid for an empty cart or an unknown SKU. The cart drawer, checkout modal and `createStripeOrder()` all use it, so they always show the same totals.
+- Delivery is one choice per order (`courier`, `pickup` or `shipped`), stored in `CartContext` and shown by the same `DeliveryOptionPicker` in the cart drawer and checkout. Courier and pickup orders are planted in the studio and add `ASSEMBLY_FEE_CENTS` per custom build as a separate "Studio assembly" line; shipped orders send every build as a DIY kit.
+- Every delivery promise (fees, lead times, the 72-hour quarantine, tax rate label) is read from `src/catalog/delivery.ts`, so the Studio, edition pages, FAQ, cart, checkout and tracker can't drift apart.
+- This still runs in the browser; it moves to the server with the Phase 3 checkout API.
 
 ### E. 5-Stage Living Assembly & Quarantine Tracker (`src/components/OrderTrackerModal.tsx`)
 - Replaces generic carrier status with the real-world botanical and hardware fabrication pipeline:
@@ -119,6 +121,14 @@ flowchart TD
   - `playSand()`: Bandpass-filtered white noise burst ($1100\text{ Hz}$).
   - `playMist()`: Highpass-filtered white noise envelope ($2800\text{ Hz}$).
 - Exactly **0 KB** of external audio files transferred over the network.
+
+### G. Development-Only Controls
+- No accounts are seeded and no form starts with personal, address or card data. Shoppers create their own account; checkout fills only the signed-in name and email.
+- These shortcuts render only when `import.meta.env.DEV` is true, so Vite strips them from production builds:
+  - **Continue with Google** (simulated sign-in as a "Google Test User"; `signIn('google')` also refuses outside development)
+  - **Auto-fill Stripe 4242 Test Card** in the checkout modal
+  - **Simulate Next Stage** in the order tracker
+- Browsers that still hold the old seeded demo accounts have them, and any session for them, removed on load.
 
 ---
 

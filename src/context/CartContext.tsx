@@ -1,26 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type {
   CartItem,
-  FulfillmentType,
-  HardwareId,
   OrderStatusInfo,
   OrderStage,
   SerializedBlueprint,
   StageHistoryEntry,
-  VesselId,
 } from '../types/terrarium';
+import { verifiedUnitPriceCents } from '../utils/stripeCheckoutEngine';
+import { QUARANTINE_HOURS, isShippingOption, type ShippingOption } from '../catalog/delivery';
 
-interface AddCustomBlueprintParams {
-  blueprint: SerializedBlueprint;
-  name: string;
-  vesselId: VesselId;
-  price: number;
-  fulfillmentType: FulfillmentType;
-  thumbnailSvg?: string;
-  hardwareIds: HardwareId[];
-  botanicalCount: number;
-  substrateCount: number;
-}
+type StandardCartItemInput = Pick<CartItem, 'type' | 'sku' | 'name' | 'description'>;
 
 interface CartContextType {
   items: CartItem[];
@@ -28,13 +17,17 @@ interface CartContextType {
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
-  addCustomBlueprint: (params: AddCustomBlueprintParams) => void;
-  addStandardItem: (item: Omit<CartItem, 'quantity' | 'id'> & { id?: string }, quantity?: number) => void;
+  /** Adds a Studio design priced from the catalog. Returns false if it can't be priced. */
+  addCustomBlueprint: (blueprint: SerializedBlueprint) => boolean;
+  /** Adds an edition or hardware item priced from the catalog. Returns false for unknown SKUs. */
+  addStandardItem: (item: StandardCartItemInput, quantity?: number) => boolean;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
-  updateItemFulfillment: (id: string, fulfillmentType: FulfillmentType) => void;
+  /** One delivery choice for the whole order; it decides assembly vs DIY kit for every build. */
+  shippingOption: ShippingOption;
+  setShippingOption: (option: ShippingOption) => void;
   clearCart: () => void;
-  subtotal: number;
+  subtotalCents: number;
   itemCount: number;
 
   // Checkout Modal State
@@ -54,8 +47,62 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'terrascape_cart_v1';
-const ORDERS_STORAGE_KEY = 'terrascape_orders_v1';
+// v2: prices moved from dollars to integer cents. v1 data is ignored.
+const CART_STORAGE_KEY = 'terrascape_cart_v2';
+const ORDERS_STORAGE_KEY = 'terrascape_orders_v2';
+const DELIVERY_STORAGE_KEY = 'terrascape_delivery_v1';
+
+function loadShippingOption(): ShippingOption {
+  try {
+    const saved = localStorage.getItem(DELIVERY_STORAGE_KEY);
+    return isShippingOption(saved) ? saved : 'courier';
+  } catch {
+    return 'courier';
+  }
+}
+
+/**
+ * Reprices saved items from the current catalog. Items saved before delivery became an
+ * order-level choice carried their own fulfillment and an assembly-inclusive price.
+ */
+function repriceStoredItem(stored: CartItem & { fulfillmentType?: unknown }): CartItem {
+  const { fulfillmentType: _legacyFulfillment, ...item } = stored;
+  const unitPriceCents = verifiedUnitPriceCents(item);
+  return unitPriceCents === null ? item : { ...item, unitPriceCents };
+}
+
+function loadStoredList<T>(key: string, isValid: (value: unknown) => boolean): T[] {
+  try {
+    const saved = localStorage.getItem(key);
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? (parsed.filter(isValid) as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isStoredCartItem = (value: unknown) =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  typeof value.sku === 'string' &&
+  Number.isInteger(value.unitPriceCents) &&
+  Number.isInteger(value.quantity);
+
+const isStoredOrder = (value: unknown) =>
+  isRecord(value) && typeof value.orderId === 'string' && Number.isInteger(value.totalCents);
+
+function describeBlueprint(blueprint: SerializedBlueprint): string {
+  const count = (skuPrefix: string) =>
+    blueprint.elements
+      .filter((line) => line.sku.startsWith(skuPrefix))
+      .reduce((sum, line) => sum + line.quantity, 0);
+  const flora = count('FLR-');
+  const details = count('HRD-');
+  return `${blueprint.foundation.name} · ${flora} ${flora === 1 ? 'plant' : 'plants'} · ${details} ${details === 1 ? 'detail' : 'details'}`;
+}
 
 const STAGE_CONFIGS: Record<
   OrderStage,
@@ -78,7 +125,7 @@ const STAGE_CONFIGS: Record<
   },
   QUARANTINE: {
     next: 'SHIPPED',
-    title: '72h Micro-Climate Quarantine & Acclimation',
+    title: `${QUARANTINE_HOURS}-Hour Micro-Climate Quarantine & Acclimation`,
     defaultNote: 'Terrarium sealed inside incubation bay. Automated misting and circadian day/night lighting cycling cleanly.',
   },
   SHIPPED: {
@@ -89,36 +136,19 @@ const STAGE_CONFIGS: Record<
 };
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [items, setItems] = useState<CartItem[]>(() =>
+    loadStoredList<CartItem>(CART_STORAGE_KEY, isStoredCartItem).map(repriceStoredItem)
+  );
+  const [shippingOption, setShippingOption] = useState<ShippingOption>(loadShippingOption);
 
-  const [orders, setOrders] = useState<OrderStatusInfo[]>(() => {
-    try {
-      const saved = localStorage.getItem(ORDERS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [orders, setOrders] = useState<OrderStatusInfo[]>(() =>
+    loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder)
+  );
 
   const [isOpen, setIsOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
-  const [activeOrder, setActiveOrder] = useState<OrderStatusInfo | null>(() => {
-    try {
-      const saved = localStorage.getItem(ORDERS_STORAGE_KEY);
-      const parsed: OrderStatusInfo[] = saved ? JSON.parse(saved) : [];
-      return parsed.length > 0 ? parsed[0] : null;
-    } catch {
-      return null;
-    }
-  });
+  const [activeOrder, setActiveOrder] = useState<OrderStatusInfo | null>(() => orders[0] ?? null);
 
   // Sync cart to localStorage
   useEffect(() => {
@@ -128,6 +158,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Failed to save cart to localStorage', e);
     }
   }, [items]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DELIVERY_STORAGE_KEY, shippingOption);
+    } catch (e) {
+      console.warn('Failed to save delivery choice to localStorage', e);
+    }
+  }, [shippingOption]);
 
   // Sync orders to localStorage
   useEffect(() => {
@@ -142,50 +180,59 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const closeCart = () => setIsOpen(false);
   const toggleCart = () => setIsOpen((prev) => !prev);
 
-  const addCustomBlueprint = (params: AddCustomBlueprintParams) => {
+  const addCustomBlueprint = (blueprint: SerializedBlueprint) => {
+    const unitPriceCents = verifiedUnitPriceCents({
+      type: 'custom_blueprint',
+      sku: 'CUSTOM-BUILD',
+      blueprint,
+    });
+    if (unitPriceCents === null) {
+      console.warn('Blueprint contains items that are not in the catalog', blueprint);
+      return false;
+    }
+
     const newItem: CartItem = {
       id: `blueprint-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: 'custom_blueprint',
-      name: `Custom ${params.name} Terrarium`,
-      sku: params.blueprint.vessel.sku,
-      price: params.price,
+      name: `Custom ${blueprint.vessel.name}`,
+      sku: 'CUSTOM-BUILD',
+      unitPriceCents,
       quantity: 1,
-      fulfillmentType: params.fulfillmentType,
-      blueprint: params.blueprint,
-      vesselId: params.vesselId,
-      thumbnailSvg: params.thumbnailSvg,
-      hardwareIds: params.hardwareIds,
-      botanicalCount: params.botanicalCount,
-      substrateCount: params.substrateCount,
-      description: `${params.substrateCount} Substrates · ${params.botanicalCount} Botanicals · ${params.hardwareIds.length} Smart Circuits`,
+      blueprint,
+      description: describeBlueprint(blueprint),
     };
 
     setItems((prev) => [newItem, ...prev]);
     setIsOpen(true);
+    return true;
   };
 
-  const addStandardItem = (
-    item: Omit<CartItem, 'quantity' | 'id'> & { id?: string },
-    quantity = 1
-  ) => {
-    const itemId = item.id || `item-${item.sku}-${Date.now()}`;
+  const addStandardItem = (item: StandardCartItemInput, quantity = 1) => {
+    const unitPriceCents = verifiedUnitPriceCents(item);
+    if (unitPriceCents === null) {
+      console.warn(`Unknown catalog SKU: ${item.sku}`);
+      return false;
+    }
+
     setItems((prev) => {
       const existing = prev.find((i) => i.sku === item.sku && i.type === item.type);
       if (existing) {
         return prev.map((i) =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.id === existing.id ? { ...i, unitPriceCents, quantity: i.quantity + quantity } : i
         );
       }
       return [
         {
           ...item,
-          id: itemId,
+          id: `item-${item.sku}-${Date.now()}`,
+          unitPriceCents,
           quantity,
         },
         ...prev,
       ];
     });
     setIsOpen(true);
+    return true;
   };
 
   const removeItem = (id: string) => {
@@ -206,38 +253,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  const updateItemFulfillment = (id: string, fulfillmentType: FulfillmentType) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          // Adjust price if toggling between assembled (+$25) and DIY ($0)
-          const hadAssembly = item.fulfillmentType === 'assembled_local';
-          const wantsAssembly = fulfillmentType === 'assembled_local';
-          let priceAdj = item.price;
-          if (!hadAssembly && wantsAssembly) priceAdj += 25;
-          if (hadAssembly && !wantsAssembly) priceAdj -= 25;
-
-          const updatedBlueprint = item.blueprint
-            ? { ...item.blueprint, fulfillmentType, estimatedTotalUSD: priceAdj }
-            : undefined;
-
-          return {
-            ...item,
-            fulfillmentType,
-            price: priceAdj,
-            blueprint: updatedBlueprint,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
   const clearCart = () => {
     setItems([]);
   };
 
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const subtotalCents = items.reduce((acc, item) => acc + item.unitPriceCents * item.quantity, 0);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const openCheckoutModal = () => {
@@ -314,9 +334,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addStandardItem,
         removeItem,
         updateQuantity,
-        updateItemFulfillment,
+        shippingOption,
+        setShippingOption,
         clearCart,
-        subtotal,
+        subtotalCents,
         itemCount,
         isCheckoutModalOpen,
         openCheckoutModal,

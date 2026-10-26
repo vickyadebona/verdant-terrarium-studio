@@ -43,8 +43,8 @@ describe('router utilities', () => {
       expect(parsePath('/terracare')).toEqual({ page: 'terracare', path: '/terracare' });
       expect(parsePath('/faq')).toEqual({ page: 'faq', path: '/faq' });
       expect(parsePath('/account')).toEqual({ page: 'account', path: '/account' });
-      expect(parsePath('/checkout')).toEqual({ page: 'checkout', path: '/checkout' });
-      expect(parsePath('/payments')).toEqual({ page: 'payments', path: '/payments' });
+      expect(parsePath('/checkout')).toEqual({ page: 'build', path: '/studio' });
+      expect(parsePath('/payments')).toEqual({ page: 'build', path: '/studio' });
     });
 
     it('parses valid edition detail routes', () => {
@@ -97,8 +97,6 @@ describe('router utilities', () => {
       expect(resolvePath('terracare')).toEqual({ path: '/terracare' });
       expect(resolvePath('faq')).toEqual({ path: '/faq' });
       expect(resolvePath('account')).toEqual({ path: '/account' });
-      expect(resolvePath('checkout')).toEqual({ path: '/checkout' });
-      expect(resolvePath('payments')).toEqual({ path: '/payments' });
     });
 
     it('resolves edition targets with custom editionId params', () => {
