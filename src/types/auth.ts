@@ -40,6 +40,8 @@ export interface AuthContextType {
     }
   ) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
+  /** True when Google sign-in is configured for this environment. */
+  googleSignInEnabled: boolean;
   isAuthModalOpen: boolean;
   authModalConfig: AuthModalConfig | null;
   openAuthModal: (config?: AuthModalConfig) => void;

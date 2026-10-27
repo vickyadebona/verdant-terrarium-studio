@@ -4,6 +4,7 @@ import { CartProvider } from '../context/CartContext';
 import { AuthProvider } from '../context/AuthContext';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Providers } from '../app/providers';
+import { signInMockUser } from './authClientMock';
 import { getEdition } from '../catalog/editions';
 import type { EditionKey } from '../utils/router';
 import {
@@ -36,9 +37,9 @@ export function renderWithProviders(
  * The whole site as the App Router would render it at the current URL: the shared providers,
  * header and dialogs from app/providers.tsx, plus the view for the path (see src/app/).
  */
-export function TestSite() {
+export function TestSite({ googleSignInEnabled = false }: { googleSignInEnabled?: boolean }) {
   return (
-    <Providers>
+    <Providers googleSignInEnabled={googleSignInEnabled}>
       <RouteForPath />
     </Providers>
   );
@@ -73,14 +74,5 @@ export function renderSiteAt(path: string) {
 
 /** Starts the test signed in, the same way a returning shopper's saved session is restored. */
 export function signInAsTestUser() {
-  localStorage.setItem(
-    'terrascape_auth_session_v1',
-    JSON.stringify({
-      id: 'usr_1700000000000_test',
-      name: 'Test Collector',
-      email: 'collector@example.test',
-      provider: 'credentials',
-      createdAt: '2026-10-01T00:00:00.000Z',
-    })
-  );
+  signInMockUser();
 }

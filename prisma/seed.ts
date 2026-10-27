@@ -1,7 +1,7 @@
 // Loads the catalog from src/catalog into the Product table. Safe to run repeatedly:
 // each product is upserted by SKU, so prices and names update in place.
-import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient, type ProductKind } from "../src/generated/prisma/client";
+import { prismaAdapterFor } from "../src/server/prismaAdapter";
 import {
   ACCESSORY_PRODUCTS,
   EDITION_MAX_QUANTITY,
@@ -64,7 +64,7 @@ export function catalogProducts(): SeedProduct[] {
 async function main() {
   const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not set.");
-  const prisma = new PrismaClient({ adapter: new PrismaNeon({ connectionString }) });
+  const prisma = new PrismaClient({ adapter: prismaAdapterFor(connectionString) });
 
   const products = catalogProducts();
   for (const product of products) {

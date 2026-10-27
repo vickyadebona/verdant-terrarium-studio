@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { screen, fireEvent, render, waitFor } from '@testing-library/react';
 import { AuthModal } from './AuthModal';
-import { AllProviders } from '../test/test-utils';
-import { useAuth } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { signInMockUser } from '../test/authClientMock';
 
 const USERS_STORAGE_KEY = 'terrascape_registered_users_v1';
 const SESSION_STORAGE_KEY = 'terrascape_auth_session_v1';
@@ -18,31 +18,16 @@ function AuthTestHost() {
   );
 }
 
-function renderAuth() {
+function renderAuth({ googleSignInEnabled = false } = {}) {
   render(
-    <AllProviders>
+    <AuthProvider googleSignInEnabled={googleSignInEnabled}>
       <AuthTestHost />
-    </AllProviders>
+    </AuthProvider>
   );
   fireEvent.click(screen.getByRole('button', { name: 'Open Sign In' }));
 }
 
-const legacyAccount = {
-  user: {
-    id: 'usr_legacy_demo',
-    name: 'Legacy Demo',
-    email: 'legacy@example.test',
-    provider: 'google',
-    createdAt: '2026-01-15T08:00:00.000Z',
-  },
-  passwordHash: 'legacy-shared-password',
-};
-
 describe('AuthModal', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it('starts with empty fields and no demo sign-in shortcuts', () => {
     renderAuth();
 
@@ -53,21 +38,47 @@ describe('AuthModal', () => {
     expect(screen.queryByRole('button', { name: /Sign in as/ })).not.toBeInTheDocument();
   });
 
-  it('removes the legacy seeded accounts and their session from this browser', async () => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([legacyAccount]));
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(legacyAccount.user));
+  it('removes the old prototype accounts and session from this browser', async () => {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify([{ user: { email: 'old@example.test' }, passwordHash: 'old-password' }]));
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ id: 'usr_old', email: 'old@example.test' }));
     renderAuth();
 
     expect(screen.getByText('Signed out')).toBeInTheDocument();
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) ?? '[]')).toEqual([]));
+    await waitFor(() => expect(localStorage.getItem(USERS_STORAGE_KEY)).toBeNull());
     expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
-    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: legacyAccount.user.email } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: legacyAccount.passwordHash } });
+  it('creates an account and signs the shopper in', async () => {
+    renderAuth();
+
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'New Collector' } });
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'New@Example.test ' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'test-password-1' } });
     fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
 
-    expect(await screen.findByRole('alert', {}, { timeout: 2000 })).toHaveTextContent('Invalid email or password');
+    expect(await screen.findByText('Signed in as new@example.test')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('explains when the email already has an account', async () => {
+    signInMockUser({ email: 'taken@example.test' });
+    renderAuth();
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'Someone' } });
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'taken@example.test' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'test-password-1' } });
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('An account with this email already exists. Please sign in.');
+  });
+
+  it('rejects a wrong password', async () => {
+    renderAuth();
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'nobody@example.test' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong-password' } });
+    fireEvent.submit(screen.getByLabelText('Password').closest('form')!);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password');
   });
 
   it('rejects sign-up passwords shorter than 8 characters', async () => {
@@ -83,9 +94,13 @@ describe('AuthModal', () => {
     );
   });
 
-  it('hides the simulated Google sign-in outside development builds', () => {
-    vi.stubEnv('NODE_ENV', 'production');
+  it('shows Google sign-in only when it is configured', () => {
     renderAuth();
     expect(screen.queryByRole('button', { name: /Continue with Google/ })).not.toBeInTheDocument();
+  });
+
+  it('offers Google sign-in once it is configured', () => {
+    renderAuth({ googleSignInEnabled: true });
+    expect(screen.getByRole('button', { name: /Continue with Google/ })).toBeInTheDocument();
   });
 });

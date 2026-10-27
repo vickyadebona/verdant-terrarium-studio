@@ -3,8 +3,10 @@ import { beforeEach, vi } from 'vitest';
 
 vi.mock('next/navigation', async () => (await import('./nextNavigationMock')).navigationMock);
 vi.mock('next/link', async () => ({ default: (await import('./nextNavigationMock')).LinkMock }));
+vi.mock('../lib/authClient', async () => ({ authClient: (await import('./authClientMock')).authClient }));
 
-beforeEach(() => {
+beforeEach(async () => {
+  (await import('./authClientMock')).resetMockAuth();
   localStorage.clear();
   sessionStorage.clear();
 

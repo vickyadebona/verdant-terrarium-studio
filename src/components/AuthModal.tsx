@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, authModalConfig, closeAuthModal, signIn } = useAuth();
+  const { isAuthModalOpen, authModalConfig, closeAuthModal, signIn, googleSignInEnabled } = useAuth();
 
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
   const [fullName, setFullName] = useState('');
@@ -117,8 +117,8 @@ export const AuthModal: React.FC = () => {
         </p>
 
         <div className="overflow-y-auto pr-1">
-          {/* Google sign-in is simulated until Phase 3 auth, so it only shows in development builds. */}
-          {process.env.NODE_ENV !== "production" && (
+          {/* Shown once Google sign-in is configured for this environment. */}
+          {googleSignInEnabled && (
           <>
           <button
             type="button"
@@ -292,7 +292,7 @@ export const AuthModal: React.FC = () => {
             <Lock className="w-3 h-3 text-[#657a4e]" />
             <span>256-bit Encrypted Session</span>
           </span>
-          <span>Phase 3 NextAuth Ready</span>
+          <span>Passwords are never stored in plain text</span>
         </div>
       </div>
     </div>

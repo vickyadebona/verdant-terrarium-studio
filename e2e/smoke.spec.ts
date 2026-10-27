@@ -1,24 +1,25 @@
 import { test, expect, type Page } from '@playwright/test';
 
+/** A new address for every run: accounts live in the database, so each test signs up afresh. */
+const uniqueEmail = (label: string) =>
+  `${label}+${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.test`;
+
 async function freshStart(page: Page, path: string, { signedIn = false } = {}) {
   await page.goto(path);
-  await page.evaluate((signedIn) => {
+  await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
-    if (signedIn) {
-      // A returning shopper's saved session (local test account).
-      localStorage.setItem(
-        'terrascape_auth_session_v1',
-        JSON.stringify({
-          id: 'usr_1700000000000_e2e',
-          name: 'E2E Collector',
-          email: 'e2e@example.test',
-          provider: 'credentials',
-          createdAt: '2026-10-01T00:00:00.000Z',
-        })
-      );
-    }
-  }, signedIn);
+  });
+  if (signedIn) {
+    // A returning shopper: create an account through the auth API. The session cookie it sets
+    // is shared with the page.
+    const origin = new URL(page.url()).origin;
+    const response = await page.request.post('/api/auth/sign-up/email', {
+      headers: { origin },
+      data: { name: 'E2E Collector', email: uniqueEmail('e2e'), password: 'e2e-test-password' },
+    });
+    expect(response.ok()).toBe(true);
+  }
   await page.goto(path);
 }
 
@@ -92,7 +93,7 @@ test.describe('TerraScape smoke suite', () => {
     await designSmoothJarWithFern(page);
     const signIn = page.getByRole('dialog', { name: 'Sign in to save it to your jar' });
     await signIn.getByLabel('Full Name').fill('E2E Guest');
-    await signIn.getByLabel('Email Address').fill('guest@example.test');
+    await signIn.getByLabel('Email Address').fill(uniqueEmail('guest'));
     await signIn.getByLabel('Password').fill('e2e-test-password');
     await signIn.getByRole('button', { name: /Create Account & Add to Your Jar/ }).click();
 

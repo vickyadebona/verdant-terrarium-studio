@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Instrument_Serif, Manrope } from "next/font/google";
+import { googleSignInEnabled } from "../server/authFlags";
 import { Providers } from "./providers";
 import "../index.css";
 
@@ -62,7 +63,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${instrumentSerif.variable} ${manrope.variable}`}>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers googleSignInEnabled={googleSignInEnabled}>{children}</Providers>
       </body>
     </html>
   );

@@ -1150,7 +1150,7 @@ function Account({
   onLogout: () => void;
 }) {
   const { openCart, itemCount, openTrackerModal, orders } = useCart();
-  const { signIn, isLoading } = useAuth();
+  const { signIn, isLoading, googleSignInEnabled } = useAuth();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
@@ -1317,8 +1317,8 @@ function Account({
               : "Sign in to access Your Jar, view your saved terrarium designs, and track your builds."}
           </p>
 
-          {/* Google sign-in is simulated until Phase 3 auth, so it only shows in development builds. */}
-          {process.env.NODE_ENV !== "production" && (
+          {/* Shown once Google sign-in is configured for this environment. */}
+          {googleSignInEnabled && (
           <>
           <button
             type="button"

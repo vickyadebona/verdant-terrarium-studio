@@ -11,9 +11,15 @@ import { OrderTrackerModal } from "../components/OrderTrackerModal";
 import { AuthModal } from "../components/AuthModal";
 
 /** Client-side state shared by every page, the site header and footer, and the global dialogs. */
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  googleSignInEnabled,
+}: {
+  children: ReactNode;
+  googleSignInEnabled: boolean;
+}) {
   return (
-    <AuthProvider>
+    <AuthProvider googleSignInEnabled={googleSignInEnabled}>
       <CartProvider>
         <StudioProvider>
           <SiteShell>{children}</SiteShell>

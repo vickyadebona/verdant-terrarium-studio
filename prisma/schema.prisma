@@ -88,6 +88,17 @@ model Verification {
   @@map("verification")
 }
 
+/// Better Auth's request counters (e.g. sign-in attempts per IP). Kept in the database because
+/// serverless functions don't share memory.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}
+
 // ---------------------------------------------------------------------------
 // Catalog: every SKU we sell. Seeded from src/catalog; prices become authoritative
 // here once checkout moves to the server.
