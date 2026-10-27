@@ -73,7 +73,7 @@ describe('StripeCheckoutModal', () => {
   });
 
   it('hides the test card shortcut outside development builds', () => {
-    vi.stubEnv('DEV', false);
+    vi.stubEnv('NODE_ENV', 'production');
     renderCheckout();
     expect(screen.queryByRole('button', { name: /Auto-fill Stripe 4242 Test Card/ })).not.toBeInTheDocument();
   });

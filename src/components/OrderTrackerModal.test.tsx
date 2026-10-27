@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, fireEvent, render } from '@testing-library/react';
 import { OrderTrackerModal } from './OrderTrackerModal';
 import { AllProviders } from '../test/test-utils';
@@ -88,5 +88,38 @@ describe('OrderTrackerModal', () => {
     fireEvent.change(picker, { target: { value: 'TS-2610-1111' } });
     expect(screen.getByText('#TS-2610-1111')).toBeInTheDocument();
     expect(screen.getByLabelText('Order')).toHaveValue('TS-2610-1111');
+  });
+});
+
+describe('OrderTrackerModal raw data', () => {
+  it('hides the raw order JSON outside development builds', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const { order } = createStripeOrder({
+      items: [
+        {
+          id: 'hw-1',
+          type: 'hardware',
+          sku: ACCESSORY_PRODUCTS.copperMicroLeds.sku,
+          name: ACCESSORY_PRODUCTS.copperMicroLeds.name,
+          unitPriceCents: ACCESSORY_PRODUCTS.copperMicroLeds.priceCents,
+          quantity: 1,
+        },
+      ],
+      customer: { name: 'Test Customer', email: 'customer@example.test' },
+      shipping: { street: '', city: '', state: '', zip: '', shippingOption: 'pickup' },
+      paymentMethod: { brand: 'visa', last4: '4242' },
+    });
+    localStorage.setItem('terrascape_orders_v2', JSON.stringify([order]));
+    render(
+      <AllProviders>
+        <TrackerTestHost />
+      </AllProviders>
+    );
+    fireEvent.click(screen.getByText('Open Tracker'));
+
+    expect(screen.getByText(`#${order.orderId}`)).toBeInTheDocument();
+    expect(screen.queryByText(/Raw Stripe & Blueprint JSON/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Download \.json/ })).not.toBeInTheDocument();
+    vi.unstubAllEnvs();
   });
 });

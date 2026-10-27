@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (provider === 'google') {
           // Google sign-in is simulated until Phase 3 auth, so it only exists in development builds.
-          if (!import.meta.env.DEV) {
+          if (process.env.NODE_ENV === "production") {
             setIsLoading(false);
             return { ok: false, error: 'Google sign-in is not available yet. Please use email instead.' };
           }

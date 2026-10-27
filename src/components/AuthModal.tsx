@@ -118,7 +118,7 @@ export const AuthModal: React.FC = () => {
 
         <div className="overflow-y-auto pr-1">
           {/* Google sign-in is simulated until Phase 3 auth, so it only shows in development builds. */}
-          {import.meta.env.DEV && (
+          {process.env.NODE_ENV !== "production" && (
           <>
           <button
             type="button"

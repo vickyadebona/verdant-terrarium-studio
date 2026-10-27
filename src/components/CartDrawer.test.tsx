@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { screen, fireEvent, render, within } from '@testing-library/react';
+import { screen, fireEvent, render, within, act } from '@testing-library/react';
 import { CartDrawer } from './CartDrawer';
 import { AllProviders } from '../test/test-utils';
 import { useCart } from '../context/CartContext';
@@ -154,5 +154,26 @@ describe('CartDrawer Component', () => {
     expect(screen.getByText('$135')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Studio pickup/ })).toBeChecked();
     expect(screen.getByText('Studio assembly (1 build)').nextElementSibling).toHaveTextContent('$25.00');
+  });
+});
+
+describe('Jar across browser tabs', () => {
+  it('empties when another tab empties it, and does not write the old jar back', async () => {
+    render(
+      <AllProviders>
+        <CartTestHost />
+      </AllProviders>
+    );
+    fireEvent.click(screen.getByText('Add Test Item'));
+    expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toHaveLength(1);
+
+    // Another tab checks out: it empties the saved jar and the browser tells this tab.
+    act(() => {
+      localStorage.setItem('terrascape_cart_v2', '[]');
+      window.dispatchEvent(new StorageEvent('storage', { key: 'terrascape_cart_v2', storageArea: localStorage }));
+    });
+
+    expect(screen.getByRole('dialog')).toHaveTextContent(/Your jar is currently empty/i);
+    expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toEqual([]);
   });
 });

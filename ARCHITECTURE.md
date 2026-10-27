@@ -21,7 +21,7 @@ The site runs on **Next.js 16 (App Router)**. Every URL is a folder under `src/a
 
 ```text
 next.config.ts                         # Redirects for old/alternative URLs (/home, /about, /build, /edition/:id, hyphenated editions)
-vercel.json                            # Tells Vercel this is a Next.js project
+vercel.json                            # Tells Vercel this is a Next.js project and to build with `npm run vercel-build` (migrate + seed + build)
 src/
 ├── app/                               # App Router: one folder per URL
 │   ├── layout.tsx                     # <html>/<body>, site-wide metadata (title template, description, Open Graph, icons), fonts
@@ -138,11 +138,17 @@ Browser-only state (cart, orders, Studio design) starts empty on the server and 
 
 ### G. Development-Only Controls
 - No accounts are seeded and no form starts with personal, address or card data. Shoppers create their own account; checkout fills only the signed-in name and email.
-- These shortcuts render only when `import.meta.env.DEV` is true (supported by Next.js/Turbopack), so they are stripped from production builds:
+- These tools render only when `process.env.NODE_ENV !== "production"`. Next.js replaces that with a constant at build time, so they are removed from production bundles entirely (`import.meta.env.DEV` only hides them at runtime: it still ships the code):
   - **Continue with Google** (simulated sign-in as a "Google Test User"; `signIn('google')` also refuses outside development)
   - **Auto-fill Stripe 4242 Test Card** in the checkout modal
   - **Simulate Next Stage** in the order tracker
+  - the raw order and blueprint JSON (tracker) and blueprint JSON (jar), for our team until the /admin page exists
 - Browsers that still hold the old seeded demo accounts have them, and any session for them, removed on load.
+
+### H. Databases per Environment (Neon + Prisma)
+- **Production** uses the Neon `main` branch. **Preview deployments** (`dev`, `staging`, pull requests) each get their own Neon branch, created by the Vercel integration and copied from `main`. **Local development** uses the `development` branch through the git-ignored `.env.development.local`, which `next dev` and `prisma.config.ts` read before `.env.local`.
+- Vercel builds with `npm run vercel-build` (set in `vercel.json`): `prisma migrate deploy`, then `prisma db seed`, then `next build`. Every branch database therefore gets the latest tables and catalog before the site that uses it goes live. CI and local `npm run build` skip the database steps.
+- The seed upserts products by SKU, so running it on every deploy is safe. Once prices are edited in /admin, production should stop reseeding so the catalog code doesn't overwrite them.
 
 ---
 

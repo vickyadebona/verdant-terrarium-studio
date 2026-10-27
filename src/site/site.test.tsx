@@ -216,3 +216,34 @@ describe('Not-found page', () => {
     expect(window.location.pathname).toBe('/collections');
   });
 });
+
+describe('After an order goes through', () => {
+  it('empties the jar and starts the Studio over', async () => {
+    signInAsTestUser();
+    renderSiteAt('/studio');
+
+    fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Pacific Forest Floor/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Button Fern/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add to Your Jar/ }));
+
+    const jar = await screen.findByRole('dialog', { name: /Your Jar/ });
+    fireEvent.click(within(jar).getByText('Proceed to Stripe Checkout'));
+    const checkout = await screen.findByRole('dialog', { name: /Stripe Embedded Checkout/ });
+    fireEvent.click(within(checkout).getByRole('radio', { name: /Studio pickup/ }));
+    fireEvent.click(within(checkout).getByRole('button', { name: /Auto-fill Stripe 4242 Test Card/ }));
+    fireEvent.click(within(checkout).getByRole('button', { name: /Authorize & Pay/ }));
+
+    expect(await screen.findByRole('dialog', { name: /Workshop Assembly Tracker/ }, { timeout: 5000 })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toEqual([]);
+    expect(screen.getByRole('button', { name: /Your Jar\s*0/ })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Your Jar/ })).not.toBeInTheDocument();
+
+    // The Studio is back to a fresh design: step 01 with only the smooth lid chosen.
+    expect(screen.getByRole('heading', { name: 'Choose your vessel.' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Smooth Lid/ })).toHaveAttribute('aria-checked', 'true');
+    expect(JSON.parse(sessionStorage.getItem('terrascape_builder_selected_v1') ?? '[]')).toEqual(['jar_smooth']);
+  }, 10000);
+});

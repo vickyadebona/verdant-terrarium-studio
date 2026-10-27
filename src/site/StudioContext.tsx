@@ -35,6 +35,8 @@ interface StudioContextValue {
   subtotalCents: number;
   toggleOption: (option: StudioOption) => void;
   adjustOptionQuantity: (option: StudioOption, delta: number) => void;
+  /** Starts a fresh design: smooth lid, empty jar, step 01. */
+  resetStudio: () => void;
   /** Loads an edition's recipe into the Studio and opens it. */
   loadSignaturePreset: (presetKey: string) => void;
   /**
@@ -72,7 +74,7 @@ function readSession<T>(key: string, parse: (raw: string) => T | undefined): T |
  */
 export function StudioProvider({ children }: { children: ReactNode }) {
   const navigate = useAppNavigate();
-  const { addCustomBlueprint } = useCart();
+  const { addCustomBlueprint, lastPlacedOrderId } = useCart();
   const runSignedIn = useSignedInAction();
 
   // Start from defaults so the server render and first client render match; the saved design
@@ -112,6 +114,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       // Private mode or full storage: the design still works for this visit.
     }
   }, [restored, selected, soilLayers, activeCategory]);
+
+  const resetStudio = () => {
+    setSelected([DEFAULT_VESSEL_ID]);
+    setSoilLayers(SOIL_RECIPES.forest.map((layer) => ({ ...layer })));
+    setActiveCategory("Vessel");
+  };
+
+  // Once an order goes through, the next visit to the Studio starts a fresh design.
+  const [handledOrderId, setHandledOrderId] = useState<string | null>(null);
+  if (lastPlacedOrderId && lastPlacedOrderId !== handledOrderId) {
+    setHandledOrderId(lastPlacedOrderId);
+    resetStudio();
+  }
 
   const chosen = useMemo<ChosenOption[]>(
     () =>
@@ -181,6 +196,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         subtotalCents,
         toggleOption,
         adjustOptionQuantity,
+        resetStudio,
         loadSignaturePreset,
         addStudioDesignToJar,
       }}

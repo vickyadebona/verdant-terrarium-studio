@@ -215,7 +215,7 @@ export const OrderTrackerModal: React.FC = () => {
                 Studio Assembly Stages
               </label>
               {/* Development builds only: the studio advances real orders from the Phase 3 workbench. */}
-              {import.meta.env.DEV && currentStageIndex < STAGES.length - 1 && (
+              {process.env.NODE_ENV !== "production" && currentStageIndex < STAGES.length - 1 && (
                 <button
                   onClick={() => advanceOrderStage(activeOrder.orderId)}
                   className="px-2.5 py-1 rounded-lg bg-[#f0ede3] hover:bg-[#eae5d8] text-[#18392b] text-xs border border-[rgba(24,57,43,0.18)] font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
@@ -366,7 +366,9 @@ export const OrderTrackerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Serialized JSON Blueprint Export */}
+          {/* Raw order and blueprint data for our team when fulfilling orders. Development builds
+              only; customers never see it. It moves to the team's /admin page with the backend. */}
+          {process.env.NODE_ENV !== "production" && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <button
@@ -399,6 +401,7 @@ export const OrderTrackerModal: React.FC = () => {
               </pre>
             )}
           </div>
+          )}
         </div>
 
         {/* Modal Footer */}

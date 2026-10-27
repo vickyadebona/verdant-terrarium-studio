@@ -197,14 +197,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                 {/* Custom Blueprint Specs */}
                 {item.type === 'custom_blueprint' && (
                   <div className="space-y-2.5 pt-2 border-t border-[rgba(24,57,43,0.12)]">
-                    {/* Expandable Blueprint JSON & Re-load Actions */}
+                    {/* Expandable design details & Re-load Actions */}
                     <div className="flex items-center justify-between text-xs pt-0.5">
                       <button
                         onClick={() => toggleExpandBlueprint(item.id)}
                         className="text-[#546358] hover:text-[#18392b] flex items-center gap-1 transition cursor-pointer font-medium"
                       >
                         <FileCode2 className="w-3.5 h-3.5 text-[#18392b]" />
-                        <span>{expandedBlueprintId === item.id ? 'Hide Specs' : 'View Blueprint Specs'}</span>
+                        <span>{expandedBlueprintId === item.id ? 'Hide design details' : 'View design details'}</span>
                         {expandedBlueprintId === item.id ? (
                           <ChevronUp className="w-3.5 h-3.5" />
                         ) : (
@@ -225,11 +225,39 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                       )}
                     </div>
 
-                    {/* Collapsible Blueprint Code View */}
+                    {/* Readable design details; the raw blueprint JSON is for our team, in development builds */}
                     {expandedBlueprintId === item.id && item.blueprint && (
-                      <pre className="bg-[#18392b] text-[#f8f5ee] border border-[#11291f] rounded-lg p-3 text-[10px] font-mono max-h-36 overflow-y-auto leading-relaxed">
-                        {JSON.stringify(item.blueprint, null, 2)}
-                      </pre>
+                      <>
+                        <dl className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.14)] rounded-lg p-3 text-[11px] text-[#546358] space-y-1.5">
+                          <div className="flex gap-2">
+                            <dt className="font-semibold text-[#18392b] w-20 shrink-0">Vessel</dt>
+                            <dd>{item.blueprint.vessel.name}</dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="font-semibold text-[#18392b] w-20 shrink-0">Foundation</dt>
+                            <dd>
+                              {item.blueprint.foundation.name}
+                              {item.blueprint.foundation.layers.length > 0 &&
+                                ` · ${item.blueprint.foundation.layers.map((layer) => layer.name).join(', ')}`}
+                            </dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="font-semibold text-[#18392b] w-20 shrink-0">Plants &amp; details</dt>
+                            <dd>
+                              {item.blueprint.elements.length > 0
+                                ? item.blueprint.elements
+                                    .map((line) => (line.quantity > 1 ? `${line.name} ×${line.quantity}` : line.name))
+                                    .join(', ')
+                                : 'None'}
+                            </dd>
+                          </div>
+                        </dl>
+                        {process.env.NODE_ENV !== "production" && (
+                          <pre className="bg-[#18392b] text-[#f8f5ee] border border-[#11291f] rounded-lg p-3 text-[10px] font-mono max-h-36 overflow-y-auto leading-relaxed">
+                            {JSON.stringify(item.blueprint, null, 2)}
+                          </pre>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

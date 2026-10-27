@@ -41,6 +41,8 @@ interface CartContextType {
   closeTrackerModal: () => void;
   activeOrder: OrderStatusInfo | null;
   orders: OrderStatusInfo[];
+  /** Id of the order placed in this tab, if any. Changes only when checkout succeeds here. */
+  lastPlacedOrderId: string | null;
   saveOrder: (order: OrderStatusInfo) => void;
   advanceOrderStage: (orderId: string) => void;
 }
@@ -165,6 +167,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState<OrderStatusInfo | null>(null);
+  const [lastPlacedOrderId, setLastPlacedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const savedOrders = loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder).map(
@@ -175,6 +178,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOrders(savedOrders);
     setActiveOrder(savedOrders[0] ?? null);
     setRestored(true);
+  }, []);
+
+  // Keep every open tab in step: when another tab changes the jar, delivery choice or orders
+  // (for example, checking out empties the jar), take its version. Otherwise this tab would
+  // write its stale copy back on its next change and the emptied jar would reappear.
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage) return;
+      if (event.key === CART_STORAGE_KEY) {
+        setItems(loadStoredList<CartItem>(CART_STORAGE_KEY, isStoredCartItem).map(repriceStoredItem));
+      } else if (event.key === ORDERS_STORAGE_KEY) {
+        setOrders(loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder).map(anonymizeStoredOrder));
+      } else if (event.key === DELIVERY_STORAGE_KEY) {
+        setShippingOption(loadShippingOption());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   // Sync cart to localStorage (only after the saved data was restored, so it is never overwritten)
@@ -317,7 +338,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveOrder = (order: OrderStatusInfo) => {
     setOrders((prev) => [order, ...prev.filter((o) => o.orderId !== order.orderId)]);
     setActiveOrder(order);
+    setLastPlacedOrderId(order.orderId);
     clearCart();
+    setIsOpen(false);
     setIsCheckoutModalOpen(false);
     setIsTrackerModalOpen(true);
   };
@@ -379,6 +402,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeTrackerModal,
         activeOrder,
         orders,
+        lastPlacedOrderId,
         saveOrder,
         advanceOrderStage,
       }}

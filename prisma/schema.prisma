@@ -1,0 +1,268 @@
+// TerraScape database schema (Postgres on Neon, Prisma 7).
+// Money is always integer US cents. Timestamps are stored with time zone.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Accounts: Better Auth's core tables (user, session, account, verification).
+// Field names follow Better Auth so its Prisma adapter can use them directly.
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  STUDIO // our team: can see and update orders in /admin
+  ADMIN
+}
+
+model User {
+  id            String            @id
+  name          String
+  email         String            @unique // stored lowercased
+  emailVerified Boolean           @default(false)
+  image         String?
+  role          Role              @default(CUSTOMER)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(3)
+  sessions      Session[]
+  accounts      Account[]
+  cart          Cart?
+  orders        Order[]
+  stageEvents   OrderStageEvent[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("session")
+}
+
+/// One row per sign-in method: "credential" (email + hashed password) or "google".
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String? // hashed by Better Auth; never stored in plain text
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: every SKU we sell. Seeded from src/catalog; prices become authoritative
+// here once checkout moves to the server.
+// ---------------------------------------------------------------------------
+
+enum ProductKind {
+  VESSEL
+  FOUNDATION
+  FLORA
+  HARDSCAPE
+  HARDWARE
+  EDITION
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  sku         String      @unique // e.g. VSL-CIR-SM, FLR-FRN, EDT-FERN_STUDY
+  /// Studio option id (jar_smooth, fern, ...), edition key (fern_study) or accessory key.
+  slug        String      @unique
+  name        String
+  kind        ProductKind
+  priceCents  Int
+  note        String?
+  /// Most a customer can order at once (editions: 1). Null means no limit.
+  maxPerOrder Int?
+  active      Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+  cartItems   CartItem[]
+
+  @@index([kind, active, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Jar: one cart per account. Items record what was chosen, never a price;
+// prices always come from Product when the jar is shown or checked out.
+// ---------------------------------------------------------------------------
+
+enum CartItemType {
+  CUSTOM_BLUEPRINT
+  EDITION
+  HARDWARE
+}
+
+enum Fulfillment {
+  COURIER // planted in the studio, Southern California courier
+  PICKUP // planted in the studio, collected from the studio
+  SHIPPED // nationwide, builds arrive as DIY kits
+}
+
+model Cart {
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fulfillment Fulfillment @default(COURIER)
+  items       CartItem[]
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+}
+
+model CartItem {
+  id        String       @id @default(cuid())
+  cartId    String
+  cart      Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  type      CartItemType
+  /// Editions and hardware point at their product; custom builds use `blueprint`.
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  /// SerializedBlueprint (vessel, foundation + soil layers, elements) for custom builds.
+  blueprint Json?
+  quantity  Int          @default(1)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([cartId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders. Totals and item prices are copied in at purchase, so later catalog
+// changes never alter a past order. Build stage and payment status are separate.
+// ---------------------------------------------------------------------------
+
+enum BuildStage {
+  BLUEPRINT_RECEIVED
+  CIRCUIT_SOLDERING
+  PLANTING
+  QUARANTINE
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING // Stripe Checkout started, not paid yet
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model Order {
+  id                      String            @id @default(cuid())
+  /// Human-friendly number shown to customers, e.g. TS-2610-4821.
+  orderNumber             String            @unique
+  userId                  String
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  stage                   BuildStage        @default(BLUEPRINT_RECEIVED)
+  paymentStatus           PaymentStatus     @default(PENDING)
+  fulfillment             Fulfillment
+  subtotalCents           Int
+  assemblyCents           Int               @default(0)
+  shippingCents           Int
+  taxCents                Int
+  totalCents              Int
+  currency                String            @default("usd")
+  stripeCheckoutSessionId String?           @unique
+  stripePaymentIntentId   String?           @unique
+  customerName            String
+  customerEmail           String
+  customerPhone           String?
+  /// Address fields are empty for studio pickup.
+  shipLine1               String?
+  shipLine2               String?
+  shipCity                String?
+  shipState               String?
+  shipPostalCode          String?
+  shipCountry             String?           @default("US")
+  deliveryNotes           String?
+  estimatedReadyAt        DateTime?         @db.Date
+  carrier                 String?
+  trackingNumber          String?
+  items                   OrderItem[]
+  stageEvents             OrderStageEvent[]
+  createdAt               DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime          @updatedAt @db.Timestamptz(3)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([stage, paymentStatus])
+}
+
+model OrderItem {
+  id             String       @id @default(cuid())
+  orderId        String
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type           CartItemType
+  sku            String
+  name           String
+  quantity       Int
+  /// Price per unit when the order was placed (cents).
+  unitPriceCents Int
+  blueprint      Json?
+
+  @@index([orderId])
+}
+
+/// The tracker's history: one row each time an order moves to a new stage.
+model OrderStageEvent {
+  id          String     @id @default(cuid())
+  orderId     String
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stage       BuildStage
+  title       String
+  notes       String?
+  /// Who logged it; customers only ever see "Our team".
+  createdById String?
+  createdBy   User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@index([orderId, createdAt])
+}
+
+/// Stripe webhook events already processed. Stripe can deliver the same event more
+/// than once; recording the id first makes handling idempotent.
+model StripeEvent {
+  id          String   @id // Stripe event id, e.g. evt_...
+  type        String
+  processedAt DateTime @default(now()) @db.Timestamptz(3)
+}

@@ -366,7 +366,7 @@ export const StripeCheckoutModal: React.FC = () => {
                 <CreditCard className="w-4 h-4 text-[#657a4e]" />
                 Stripe Payment Element (Card &amp; BNPL)
               </label>
-              {import.meta.env.DEV && (
+              {process.env.NODE_ENV !== "production" && (
                 <button
                   type="button"
                   onClick={fillTestCard}

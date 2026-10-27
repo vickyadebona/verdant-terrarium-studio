@@ -28,3 +28,11 @@ test-results/
 .next
 next-env.d.ts
 *.tsbuildinfo
+
+/src/generated/prisma
+
+# Local secrets (keep .env.example committed)
+.env
+.env*.local
+.env*
+!.env.example

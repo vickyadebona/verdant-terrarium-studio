@@ -84,7 +84,7 @@ describe('AuthModal', () => {
   });
 
   it('hides the simulated Google sign-in outside development builds', () => {
-    vi.stubEnv('DEV', false);
+    vi.stubEnv('NODE_ENV', 'production');
     renderAuth();
     expect(screen.queryByRole('button', { name: /Continue with Google/ })).not.toBeInTheDocument();
   });
