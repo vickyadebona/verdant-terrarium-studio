@@ -19,6 +19,9 @@ export interface Session {
 export interface AuthModalConfig {
   title?: string;
   message?: string;
+  /** Finishes the submit button label, e.g. "Add to Your Jar" → "Sign In & Add to Your Jar". */
+  actionLabel?: string;
+  /** Runs once, right after a successful sign-in or sign-up from the dialog. */
   onAuthenticated?: () => void;
 }
 

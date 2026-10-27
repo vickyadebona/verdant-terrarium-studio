@@ -17,35 +17,53 @@ The application guides customers through a curated 4-step wizard (**01 Vessel & 
 
 ## 2. Directory & File Structure
 
+The site runs on **Next.js 16 (App Router)**. Every URL is a folder under `src/app/`; the page code lives in `src/site/views.tsx` and the shared state in providers.
+
 ```text
+next.config.ts                         # Redirects for old/alternative URLs (/home, /about, /build, /edition/:id, hyphenated editions)
+vercel.json                            # Tells Vercel this is a Next.js project
 src/
-├── main.tsx                           # React DOM entry point (wraps AuthProvider & CartProvider)
-├── App.tsx                            # Root application orchestrator, router & Studio Builder wizard
+├── app/                               # App Router: one folder per URL
+│   ├── layout.tsx                     # <html>/<body>, site-wide metadata (title template, description, Open Graph, icons), fonts
+│   ├── providers.tsx                  # Client providers (auth, cart, Studio) + site header/footer + global dialogs
+│   ├── not-found.tsx                  # 404 page (real 404 status, noindex)
+│   ├── collections/ studio/ our-story/ terracare/ faq/ account/
+│   │   └── page.tsx                   # Exports the page's metadata and renders its view
+│   └── editions/[id]/page.tsx         # The three studio editions, prerendered; per-edition title and share image
+├── site/
+│   ├── views.tsx                      # Page components (Collection, Studio builder, Our Story, TerraCare, FAQ, Account, not-found) and the route views
+│   ├── SiteShell.tsx                  # Header (nav, account/jar actions, mobile menu) and footer
+│   ├── StudioContext.tsx              # The Studio design in progress (selections, soil layers, step), kept in sessionStorage
+│   └── navigation.ts                  # useAppNavigate(): page names and aliases → canonical URLs via the Next.js router
 ├── index.css                          # Global design tokens, official TerraScape branding palette
 ├── Terrarium2DLayeredView.tsx         # Procedural 2D cross-section SVG stage with custom soil slices
-├── Terrarium3DShowcase.tsx            # Three.js WebGL 3D showcase with OrbitControls & mist particles
+├── Terrarium3DShowcase.tsx            # Three.js WebGL 3D showcase with OrbitControls & mist particles (three is bundled from npm)
 ├── types/
 │   ├── auth.ts                        # User credentials, session profiles & auth state types
 │   └── terrarium.ts                   # Blueprint, cart and order types (prices in integer cents)
 ├── catalog/
 │   ├── index.ts                       # Single product catalog: Studio options, soil recipes, editions, accessories, fees
+│   ├── editions.ts                    # Studio edition content, Studio presets and site photography (plain data, usable on the server)
 │   ├── delivery.ts                    # Delivery options, fees, lead times and quarantine length
 │   ├── money.ts                       # formatCents() / formatCentsExact() display helpers
 │   └── studioBlueprint.ts             # Turns Studio selections into a SerializedBlueprint
+├── hooks/
+│   └── useDialogFocus.ts              # Focus, Tab and Escape handling for the dialogs
 ├── utils/
-│   ├── router.ts                      # Clean client-side pathname router (/collections, /studio, etc.)
+│   ├── router.ts                      # Page names and URL aliases → canonical paths (used by useAppNavigate)
 │   ├── stripeCheckoutEngine.ts        # Authoritative pricing validator & 5-stage order simulator
 │   └── soundEffects.ts                # Zero-asset Web Audio API procedural synthesizer
 ├── context/
 │   ├── AuthContext.tsx                # User session management with localStorage persistence
-│   └── CartContext.tsx                # Global shopping cart, order storage & tracker state
-└── components/
-    ├── CartDrawer.tsx                 # Slide-over cart drawer with itemized line items
-    ├── AuthModal.tsx                  # Sign up / sign in modal (warm botanical parchment theme)
-    ├── StripeCheckoutModal.tsx        # In-app Stripe PaymentElement & address collection modal
-    ├── DeliveryOptionPicker.tsx       # Shared order-level delivery choice (cart drawer + checkout)
-    ├── OrderTrackerModal.tsx          # 5-stage living vivarium assembly & quarantine tracker
-    └── EditionDetailPage.tsx         # Detailed showcase page for Andrew's Signature Editions
+│   └── CartContext.tsx                # Global shopping cart, order storage & tracker state (restored after mount)
+├── components/
+│   ├── CartDrawer.tsx                 # Slide-over cart drawer with itemized line items
+│   ├── AuthModal.tsx                  # Sign up / sign in modal (warm botanical parchment theme)
+│   ├── StripeCheckoutModal.tsx        # In-app Stripe PaymentElement & address collection modal
+│   ├── DeliveryOptionPicker.tsx       # Shared order-level delivery choice (cart drawer + checkout)
+│   ├── OrderTrackerModal.tsx          # 5-stage living vivarium assembly & quarantine tracker
+│   └── EditionDetailPage.tsx         # Detailed showcase page for Andrew's Signature Editions
+└── test/                              # Vitest setup, Next.js router stand-ins and the TestSite harness
 ```
 
 ---
@@ -54,35 +72,31 @@ src/
 
 ```mermaid
 flowchart TD
-    Main["main.tsx"]
-    Main --> AuthP["AuthContext.tsx"]
-    AuthP --> CartP["CartContext.tsx"]
-    CartP --> App["App.tsx (Root & Navigation)"]
+    Layout["app/layout.tsx (server)"] --> Providers["app/providers.tsx (client)"]
+    Providers --> AuthP["AuthContext"] --> CartP["CartContext"] --> StudioP["StudioContext"]
+    StudioP --> Shell["SiteShell (header, nav, footer)"]
+    StudioP --> Modals["Global dialogs: CartDrawer, AuthModal, StripeCheckoutModal, OrderTrackerModal"]
 
-    App --> TopHeader["Site Header & Nav (/collections, /studio, /our-story, /terracare)"]
-    App --> RouteView["Active Route View"]
+    Shell --> Route["Current route: app/**/page.tsx (server: metadata) → site/views.tsx (client)"]
+    Route --> Collections["/collections"]
+    Route --> Studio["/studio → Builder"]
+    Route --> Editions["/editions/[id] → EditionDetailPage"]
+    Route --> Story["/our-story → About + Terrarium3DShowcase"]
+    Route --> Care["/terracare"]
+    Route --> Faq["/faq"]
+    Route --> Account["/account"]
+    Route --> NotFound["not-found"]
 
-    RouteView --> HomeView["Home / Collections (/collections)"]
-    RouteView --> BuilderWizard["Studio Builder Wizard (/studio)"]
-    RouteView --> EditionDetail["EditionDetailPage (/editions/:id)"]
-    RouteView --> StoryView["Our Story (/our-story)"]
-    RouteView --> AccountView["Account & Orders (/account)"]
-
-    BuilderWizard --> View2D["Terrarium2DLayeredView.tsx (2D SVG Cross-Section)"]
-    BuilderWizard --> View3D["Terrarium3DShowcase.tsx (Three.js WebGL 3D)"]
-
-    App --> Modals["Floating Global Modals"]
-    Modals --> CartD["CartDrawer.tsx"]
-    Modals --> AuthM["AuthModal.tsx"]
-    Modals --> StripeM["StripeCheckoutModal.tsx"]
-    Modals --> OrderM["OrderTrackerModal.tsx"]
+    Studio --> View2D["Terrarium2DLayeredView (2D SVG cross-section)"]
 ```
+
+Browser-only state (cart, orders, Studio design) starts empty on the server and is restored from storage right after the page loads, so the server-rendered HTML and the first client render match.
 
 ---
 
 ## 4. Key Technical Subsystems
 
-### A. Guided Studio Wizard (`src/App.tsx`)
+### A. Guided Studio Wizard (`src/site/views.tsx` + `src/site/StudioContext.tsx`)
 - Structured step-by-step customizer divided into 4 sequential categories:
   1. **Vessel:** Single-choice glass enclosure with integrated smart climate lid.
   2. **Foundation:** Soil recipes (Pacific Forest, Volcanic Backwall, Cloud Tropical) with an expandable drawer to adjust layer depths and wave contours.
@@ -124,7 +138,7 @@ flowchart TD
 
 ### G. Development-Only Controls
 - No accounts are seeded and no form starts with personal, address or card data. Shoppers create their own account; checkout fills only the signed-in name and email.
-- These shortcuts render only when `import.meta.env.DEV` is true, so Vite strips them from production builds:
+- These shortcuts render only when `import.meta.env.DEV` is true (supported by Next.js/Turbopack), so they are stripped from production builds:
   - **Continue with Google** (simulated sign-in as a "Google Test User"; `signIn('google')` also refuses outside development)
   - **Auto-fill Stripe 4242 Test Card** in the checkout modal
   - **Simulate Next Stage** in the order tracker

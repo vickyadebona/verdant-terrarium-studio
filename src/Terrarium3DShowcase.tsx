@@ -60,12 +60,13 @@ export default function Terrarium3DShowcase({
 
     async function initThree() {
       try {
-        const dynamicImport = new Function("specifier", "return import(specifier)");
-        const [THREE, { GLTFLoader }, { OrbitControls }] = await Promise.all([
-          dynamicImport("three"),
-          dynamicImport("three/addons/loaders/GLTFLoader.js"),
-          dynamicImport("three/addons/controls/OrbitControls.js"),
-        ]);
+        // Loaded on demand from the bundled three package, so the 3D code stays out of the first page load.
+        // Typed loosely: this scene code predates strict typing of the three.js API.
+        const [THREE, { GLTFLoader }, { OrbitControls }] = (await Promise.all([
+          import("three"),
+          import("three/examples/jsm/loaders/GLTFLoader.js"),
+          import("three/examples/jsm/controls/OrbitControls.js"),
+        ])) as [any, any, any];
 
         if (disposed || !container) return;
 

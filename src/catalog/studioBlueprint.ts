@@ -1,6 +1,7 @@
 import type { BlueprintLine, SerializedBlueprint } from '../types/terrarium';
 import {
-  SINGLE_CHOICE_CATEGORIES,
+  STUDIO_CATEGORIES,
+  STUDIO_REQUIRED_CATEGORIES,
   SOIL_CONTOUR_RANGE,
   SOIL_DEPTH_RANGE_MM,
   STUDIO_OPTIONS,
@@ -22,8 +23,8 @@ function toLine(option: StudioOption, quantity: number): BlueprintLine {
 
 /**
  * Turns Studio state (option ids, repeated once per unit, plus soil layers)
- * into a blueprint. Fails with the missing steps when no vessel or
- * foundation has been chosen.
+ * into a blueprint. Fails with the missing steps when any required step
+ * (STUDIO_REQUIRED_CATEGORIES) has no selection.
  */
 export function buildStudioBlueprint(
   selectedIds: string[],
@@ -37,10 +38,10 @@ export function buildStudioBlueprint(
   const vessel = chosen.find((option) => option.category === 'Vessel');
   const foundation = chosen.find((option) => option.category === 'Foundation');
 
-  const missing = SINGLE_CHOICE_CATEGORIES.filter(
+  const missing = STUDIO_REQUIRED_CATEGORIES.filter(
     (category) => !chosen.some((option) => option.category === category)
   );
-  if (!vessel || !foundation) return { ok: false, missing };
+  if (missing.length > 0 || !vessel || !foundation) return { ok: false, missing };
 
   return {
     ok: true,
@@ -63,4 +64,17 @@ export function buildStudioBlueprint(
         .map((option) => toLine(option, counts.get(option.id) ?? 1)),
     },
   };
+}
+
+/** True when the step has a selection, or doesn't require one. */
+export function isStudioStepComplete(category: StudioCategory, selected: string[]): boolean {
+  return (
+    !STUDIO_REQUIRED_CATEGORIES.includes(category) ||
+    selected.some((id) => STUDIO_OPTIONS.find((option) => option.id === id)?.category === category)
+  );
+}
+
+/** The furthest step the shopper may open: the first required step that is still empty. */
+export function furthestReachableStep(selected: string[]): StudioCategory {
+  return STUDIO_CATEGORIES.find((category) => !isStudioStepComplete(category, selected)) ?? STUDIO_CATEGORIES[STUDIO_CATEGORIES.length - 1];
 }

@@ -1,4 +1,5 @@
-import type { Page, EditionKey, StudioEdition } from "../App";
+import type { Page, EditionKey } from "../utils/router";
+import type { StudioEdition } from "../catalog/editions";
 import { formatCents } from "../catalog/money";
 import { deliveryFeeLabel } from "../catalog/delivery";
 

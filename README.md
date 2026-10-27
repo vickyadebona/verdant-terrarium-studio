@@ -25,13 +25,14 @@ For details on the modular architecture, data flows, and technical subsystems, s
 
 ```text
 src/
-├── App.tsx                     # Main store, client router & Studio Wizard
+├── app/                        # Next.js App Router: one folder per URL, plus layout, providers and not-found
+├── site/                       # Page components, header/footer shell, Studio state, navigation hook
 ├── Terrarium2DLayeredView.tsx  # Procedural 2D cross-section SVG stage
 ├── Terrarium3DShowcase.tsx     # Three.js WebGL 3D showcase
 ├── context/                    # AuthContext & CartContext with local persistence
 ├── components/                 # CartDrawer, AuthModal, StripeCheckoutModal, OrderTrackerModal
-├── catalog/                    # Single product catalog (integer cents) & Studio blueprint builder
-└── utils/                      # Client router, Stripe checkout engine & Web Audio synthesizer
+├── catalog/                    # Single product catalog (integer cents), editions, delivery & Studio blueprint builder
+└── utils/                      # URL aliases, Stripe checkout engine & Web Audio synthesizer
 ```
 
 ---
@@ -45,7 +46,7 @@ Requires **Node 22** (pinned in `.nvmrc`; run `nvm use`).
 git clone https://github.com/vickyadebona/terrascape.git
 cd terrascape
 
-# Install dependencies & start Vite dev server
+# Install dependencies & start the Next.js dev server (http://localhost:3000)
 npm install
 npm run dev
 ```
@@ -59,5 +60,6 @@ These run in GitHub Actions (`.github/workflows/ci.yml`) on every push to `dev`,
 | `npm run lint` | oxlint (rules in `.oxlintrc.json`) |
 | `npm run typecheck` | TypeScript in `strict` mode, app and tests |
 | `npm test` | Vitest unit and component tests |
-| `npm run build` | Typecheck plus the Vite production build |
-| `npm run test:e2e` | Playwright smoke tests (local only for now) |
+| `npm start` | Serve the production build locally |
+| `npm run build` | Next.js production build (also typechecks) |
+| `npm run test:e2e` | Playwright smoke tests against the dev server |

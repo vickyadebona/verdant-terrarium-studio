@@ -153,45 +153,58 @@ const STAGE_CONFIGS: Record<
 };
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>(() =>
-    loadStoredList<CartItem>(CART_STORAGE_KEY, isStoredCartItem).map(repriceStoredItem)
-  );
-  const [shippingOption, setShippingOption] = useState<ShippingOption>(loadShippingOption);
+  // Start empty so the server render and the first client render match; the saved cart,
+  // delivery choice and orders are restored right after mount.
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [shippingOption, setShippingOption] = useState<ShippingOption>('courier');
 
-  const [orders, setOrders] = useState<OrderStatusInfo[]>(() =>
-    loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder).map(anonymizeStoredOrder)
-  );
+  const [orders, setOrders] = useState<OrderStatusInfo[]>([]);
+  const [restored, setRestored] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
-  const [activeOrder, setActiveOrder] = useState<OrderStatusInfo | null>(() => orders[0] ?? null);
+  const [activeOrder, setActiveOrder] = useState<OrderStatusInfo | null>(null);
 
-  // Sync cart to localStorage
   useEffect(() => {
+    const savedOrders = loadStoredList<OrderStatusInfo>(ORDERS_STORAGE_KEY, isStoredOrder).map(
+      anonymizeStoredOrder
+    );
+    setItems(loadStoredList<CartItem>(CART_STORAGE_KEY, isStoredCartItem).map(repriceStoredItem));
+    setShippingOption(loadShippingOption());
+    setOrders(savedOrders);
+    setActiveOrder(savedOrders[0] ?? null);
+    setRestored(true);
+  }, []);
+
+  // Sync cart to localStorage (only after the saved data was restored, so it is never overwritten)
+  useEffect(() => {
+    if (!restored) return;
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } catch (e) {
       console.warn('Failed to save cart to localStorage', e);
     }
-  }, [items]);
+  }, [restored, items]);
 
   useEffect(() => {
+    if (!restored) return;
     try {
       localStorage.setItem(DELIVERY_STORAGE_KEY, shippingOption);
     } catch (e) {
       console.warn('Failed to save delivery choice to localStorage', e);
     }
-  }, [shippingOption]);
+  }, [restored, shippingOption]);
 
   // Sync orders to localStorage
   useEffect(() => {
+    if (!restored) return;
     try {
       localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
     } catch (e) {
       console.warn('Failed to save orders to localStorage', e);
     }
-  }, [orders]);
+  }, [restored, orders]);
 
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);

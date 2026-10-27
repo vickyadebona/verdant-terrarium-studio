@@ -14,8 +14,9 @@
   --ts-muted: #546358;
   --ts-border: rgba(24, 57, 43, 0.14);
 
-  --font-serif: "Instrument Serif", Georgia, serif;
-  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Self-hosted by next/font (see app/layout.tsx) */
+  --font-serif: var(--font-instrument-serif), Georgia, serif;
+  --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Layout & Responsive Container Guidelines (1200px max content + scaled desktop padding) */
   --content-max-width: 1200px;
@@ -65,6 +66,26 @@
 /* Dialogs take focus programmatically when they open; the outline would frame the whole overlay */
 [role="dialog"][tabindex="-1"]:focus {
   outline: none;
+}
+
+/* Studio: steps that can't be used yet */
+.builder .primary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.builder .steps button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.builder-step-hint {
+  min-height: 1.2em;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--ts-muted);
+  text-align: right;
 }
 
 /* Not-found page actions */
@@ -196,6 +217,7 @@ a.text-button {
 }
 
 .nav-cta-button {
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;

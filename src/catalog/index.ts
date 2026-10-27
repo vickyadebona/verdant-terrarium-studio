@@ -24,6 +24,16 @@ export const STUDIO_CATEGORIES: StudioCategory[] = ['Vessel', 'Foundation', 'Flo
 
 export const SINGLE_CHOICE_CATEGORIES: StudioCategory[] = ['Vessel', 'Foundation'];
 
+/**
+ * Studio steps that need at least one selection before the shopper can continue to the next
+ * step or add the design to the jar. Details is optional. Add or remove a step here to change
+ * the rule everywhere (Studio buttons, the jar check and the "From" price).
+ */
+export const STUDIO_REQUIRED_CATEGORIES: StudioCategory[] = ['Vessel', 'Foundation', 'Flora'];
+
+/** Selected when the Studio starts, so step 1 begins with the smooth lid already chosen. */
+export const DEFAULT_VESSEL_ID = 'jar_smooth';
+
 /** Most of one Studio element a customer can add to a single build. */
 export const MAX_ELEMENT_QUANTITY = 5;
 
@@ -244,11 +254,11 @@ export function getStudioOption(id: string): StudioOption | undefined {
 }
 
 /**
- * Cheapest complete Studio design: the least expensive vessel and foundation, before
+ * Cheapest complete Studio design: the least expensive option in each required step, before
  * assembly and delivery. This is the "From" price on the collections page.
  */
 export function studioStartingPriceCents(): number {
-  return SINGLE_CHOICE_CATEGORIES.reduce((sum, category) => {
+  return STUDIO_REQUIRED_CATEGORIES.reduce((sum, category) => {
     const prices = STUDIO_OPTIONS.filter((option) => option.category === category).map(
       (option) => option.priceCents
     );

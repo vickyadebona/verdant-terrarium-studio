@@ -47,10 +47,7 @@ export const AuthModal: React.FC = () => {
         }
       }
 
-      if (authModalConfig?.onAuthenticated) {
-        authModalConfig.onAuthenticated();
-      }
-      closeAuthModal();
+      // signIn() closes this dialog and runs authModalConfig.onAuthenticated itself.
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
       setErrorMsg(message);
@@ -67,10 +64,6 @@ export const AuthModal: React.FC = () => {
       if (!res.ok) {
         throw new Error(res.error || 'Google sign-in failed');
       }
-      if (authModalConfig?.onAuthenticated) {
-        authModalConfig.onAuthenticated();
-      }
-      closeAuthModal();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed';
       setErrorMsg(message);
@@ -283,8 +276,8 @@ export const AuthModal: React.FC = () => {
                 <>
                   <span>
                     {mode === 'signup'
-                      ? 'Create Account & Continue to Checkout'
-                      : 'Sign In & Continue to Checkout'}
+                      ? `Create Account & ${authModalConfig?.actionLabel ?? 'Continue to Checkout'}`
+                      : `Sign In & ${authModalConfig?.actionLabel ?? 'Continue to Checkout'}`}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>

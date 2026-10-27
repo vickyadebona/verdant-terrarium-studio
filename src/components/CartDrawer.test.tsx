@@ -123,7 +123,7 @@ describe('CartDrawer Component', () => {
   });
 
   it('reprices a saved build that carried its own fulfillment and assembly fee', () => {
-    const blueprint = buildStudioBlueprint(['jar_smooth', 'forest', 'fern'], SOIL_RECIPES.forest);
+    const blueprint = buildStudioBlueprint(['jar_smooth', 'forest', 'fern', 'stone'], SOIL_RECIPES.forest);
     if (!blueprint.ok) throw new Error('blueprint');
     localStorage.setItem(
       'terrascape_cart_v2',
@@ -150,7 +150,8 @@ describe('CartDrawer Component', () => {
     fireEvent.click(screen.getByText('Open Cart Drawer'));
 
     // The line shows the catalog price; the order-level pickup choice adds assembly once.
-    expect(screen.getByText('$124')).toBeInTheDocument();
+    // $84 jar + $22 foundation + $18 fern + $11 river stone
+    expect(screen.getByText('$135')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Studio pickup/ })).toBeChecked();
     expect(screen.getByText('Studio assembly (1 build)').nextElementSibling).toHaveTextContent('$25.00');
   });

@@ -44,9 +44,14 @@ const copperLeds: CartItem = {
 };
 
 describe('buildStudioBlueprint', () => {
-  it('reports the missing vessel and foundation steps', () => {
-    const result = buildStudioBlueprint(['fern'], SOIL_RECIPES.forest);
-    expect(result).toEqual({ ok: false, missing: ['Vessel', 'Foundation'] });
+  it('reports every required step that is still empty', () => {
+    const result = buildStudioBlueprint(['stone'], SOIL_RECIPES.forest);
+    expect(result).toEqual({ ok: false, missing: ['Vessel', 'Foundation', 'Flora'] });
+  });
+
+  it('builds a design without any details', () => {
+    const result = buildStudioBlueprint(['jar_smooth', 'forest', 'fern'], SOIL_RECIPES.forest);
+    expect(result.ok && result.blueprint.elements.map((line) => line.sku)).toEqual(['FLR-FRN']);
   });
 
   it('collapses repeated option ids into quantities and keeps soil layers', () => {
@@ -63,7 +68,7 @@ describe('buildStudioBlueprint', () => {
 
   it('clamps soil depths to the Studio slider range', () => {
     const deep = SOIL_RECIPES.forest.map((layer) => ({ ...layer, depthMm: 400 }));
-    const result = buildStudioBlueprint(['jar_smooth', 'forest'], deep);
+    const result = buildStudioBlueprint(['jar_smooth', 'forest', 'fern', 'stone'], deep);
     expect(result.ok && result.blueprint.foundation.layers.every((l) => l.depthMm === 48)).toBe(true);
   });
 });
@@ -174,9 +179,9 @@ describe('quoteOrder', () => {
 });
 
 describe('studioStartingPriceCents', () => {
-  it('is the cheapest vessel plus the cheapest foundation', () => {
-    // Smooth jar $84 + Pacific Forest $22
-    expect(studioStartingPriceCents()).toBe(10600);
+  it('is the cheapest option in each required step', () => {
+    // Smooth jar $84 + Pacific Forest $22 + Selaginella $15 (details are optional)
+    expect(studioStartingPriceCents()).toBe(12100);
   });
 });
 

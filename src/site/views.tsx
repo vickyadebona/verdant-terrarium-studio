@@ -1,17 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Terrarium3DShowcase from "./Terrarium3DShowcase";
-import Terrarium2DLayeredView from "./Terrarium2DLayeredView";
+"use client";
+
+import { useState } from "react";
+import Terrarium3DShowcase from "../Terrarium3DShowcase";
+import Terrarium2DLayeredView from "../Terrarium2DLayeredView";
 import {
   ARRIVAL_GUARANTEE_DAYS,
   ASSEMBLY_FEE_CENTS,
-  EDITION_PRODUCTS,
   FREE_SHIPPING_THRESHOLD_CENTS,
-  MAX_ELEMENT_QUANTITY,
   SHIPPED_FEE_CENTS,
-  SINGLE_CHOICE_CATEGORIES,
+  STUDIO_REQUIRED_CATEGORIES,
   SOIL_CONTOUR_RANGE,
   SOIL_DEPTH_RANGE_MM,
-  SOIL_RECIPES,
   STUDIO_CATEGORIES,
   STUDIO_OPTIONS,
   getStudioOption,
@@ -19,38 +18,22 @@ import {
   type SoilLayerSpec,
   type StudioCategory,
   type StudioOption,
-} from "./catalog";
-import { formatCents } from "./catalog/money";
-import { DELIVERY_OPTIONS, QUARANTINE_HOURS } from "./catalog/delivery";
-import { buildStudioBlueprint } from "./catalog/studioBlueprint";
-import { useCart } from "./context/CartContext";
-import { useAuth } from "./context/AuthContext";
-import { CartDrawer } from "./components/CartDrawer";
-import { StripeCheckoutModal } from "./components/StripeCheckoutModal";
-import { OrderTrackerModal } from "./components/OrderTrackerModal";
-import { AuthModal } from "./components/AuthModal";
-import type { User as UserProfile } from "./types/auth";
-import { EditionDetailPage } from "./components/EditionDetailPage";
-import {
-  parsePath,
-  resolvePath,
-  type RouteInfo,
-  type Page,
-  type EditionKey,
-} from "./utils/router";
-
-export type { Page, EditionKey };
+} from "../catalog";
+import { formatCents } from "../catalog/money";
+import { DELIVERY_OPTIONS, QUARANTINE_HOURS } from "../catalog/delivery";
+import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import type { User as UserProfile } from "../types/auth";
+import { furthestReachableStep, isStudioStepComplete } from "../catalog/studioBlueprint";
+import { EditionDetailPage } from "../components/EditionDetailPage";
+import type { Page, EditionKey } from "../utils/router";
+import { STUDIO_EDITIONS, images, type StudioEdition } from "../catalog/editions";
+import { useStudio } from "./StudioContext";
+import { useAppNavigate } from "./navigation";
+import { ADD_TO_JAR_PROMPT, useSignedInAction } from "./useSignedInAction";
 
 type Category = StudioCategory;
 type Option = StudioOption;
-
-const images = {
-  hero: "/renders/terrascape-hero-photo.jpg",
-  collection: "https://images.unsplash.com/photo-1636406261400-dc146d8f3699?auto=format&fit=crop&w=1200&q=85",
-  fern: "https://images.unsplash.com/photo-1756511946084-db06133ea4f0?auto=format&fit=crop&w=1000&q=85",
-  moss: "https://images.unsplash.com/photo-1767131543385-1256db237a33?auto=format&fit=crop&w=1000&q=85",
-  jar: "https://images.unsplash.com/photo-1738061422017-8b647262e703?auto=format&fit=crop&w=1000&q=85",
-};
 
 // Studio option photos, keyed by Studio option id. Empty until there are real photos of each
 // option (the flora list is still a placeholder); cards without a photo show text only.
@@ -63,351 +46,7 @@ const SHOW_SOIL_CUSTOMIZER = false;
 const options = STUDIO_OPTIONS;
 const categories = STUDIO_CATEGORIES;
 
-const SIGNATURE_PRESETS: Record<
-  string,
-  {
-    name: string;
-    edition: string;
-    selected: string[];
-    recipeKey: "volcanic" | "forest" | "tropical";
-  }
-> = {
-  cloud_forest: {
-    name: "The Cloud Forest",
-    edition: "Studio edition · 01",
-    selected: ["jar_smooth", "forest", "fern", "moss", "stone"],
-    recipeKey: "forest",
-  },
-  fern_study: {
-    name: "Fern Study",
-    edition: "Studio edition · 02",
-    selected: ["jar_smooth", "volcanic", "fern", "fittonia", "lava_rock"],
-    recipeKey: "volcanic",
-  },
-  moss_garden: {
-    name: "Moss Garden",
-    edition: "Studio edition · 03",
-    selected: ["jar_ridged", "tropical", "moss", "selaginella", "stone"],
-    recipeKey: "tropical",
-  },
-};
-
-export interface EditionFloraItem {
-  name: string;
-  botanical: string;
-  role: string;
-  description: string;
-  humidity: string;
-  light: string;
-}
-
-export interface EditionElementItem {
-  name: string;
-  category: string;
-  description: string;
-}
-
-export interface EditionCareItem {
-  label: string;
-  schedule: string;
-  detail: string;
-}
-
-export interface StudioEdition {
-  id: EditionKey;
-  edition: string;
-  name: string;
-  tagline: string;
-  sku: string;
-  priceCents: number;
-  image: string;
-  vessel: string;
-  vesselNote: string;
-  overview: string;
-  story: string;
-  presetKey: EditionKey;
-  flora: EditionFloraItem[];
-  elements: EditionElementItem[];
-  care: EditionCareItem[];
-}
-
-export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
-  cloud_forest: {
-    id: "cloud_forest",
-    edition: "Studio edition · 01",
-    name: "The Cloud Forest",
-    tagline: "A cascading temperate cloud-canopy with delicate button ferns and living moss mounds.",
-    sku: EDITION_PRODUCTS.cloud_forest.sku,
-    priceCents: EDITION_PRODUCTS.cloud_forest.priceCents,
-    image: images.collection,
-    vessel: "Tall Apothecary Jar · 14 in",
-    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
-    overview:
-      "Inspired by high-altitude Pacific coastal ravines where ocean fog gathers in sheltered tree canopies. The Cloud Forest balances vertical cascading foliage against sculpted ground mounds, creating a self-regulating water cycle under hand-blown glass.",
-    story:
-      "Every Cloud Forest build is planted by hand in our Los Angeles greenhouse. We anchor a four-layer woodland substrate, tuck living cushion moss blankets around the stone contours, and seat our integrated smart lid so your terrarium begins its rain cycle the moment you plug it in.",
-    presetKey: "cloud_forest",
-    flora: [
-      {
-        name: "Button Fern",
-        botanical: "Pellaea rotundifolia",
-        role: "Primary Canopy Fronds",
-        description:
-          "Soft, arching dark-emerald fronds with leathery button-shaped pinnae that catch and channel morning mist.",
-        humidity: "70% – 85% RH",
-        light: "Full-Spectrum 5000K LED",
-      },
-      {
-        name: "Cushion Pillow Moss",
-        botanical: "Leucobryum glaucum",
-        role: "Living Forest Carpet",
-        description:
-          "Velvet-soft mounded bryophyte domes that act as a living botanical sponge, storing humidity and releasing it gradually.",
-        humidity: "65% – 90% RH",
-        light: "Soft Diffused Canopy Glow",
-      },
-      {
-        name: "Miniature Epiphyte Vine",
-        botanical: "Ficus pumila var. quercifolia",
-        role: "Upper Glass & Stone Climber",
-        description:
-          "Tiny oak-shaped leaves that gracefully scale the rear glass wall and weathered river stones, adding vertical depth.",
-        humidity: "60% – 85% RH",
-        light: "Gentle Daylight LED",
-      },
-    ],
-    elements: [
-      {
-        name: "Pacific Forest Earth Blend",
-        category: "Stratified Foundation",
-        description:
-          "Four-stage substrate consisting of expanded clay drainage pebbles, activated filtration biochar, and nutrient-dense Douglas fir bark humus.",
-      },
-      {
-        name: "Willamette River Stones",
-        category: "Hardscape Specimen",
-        description:
-          "Hand-selected smooth, tumbled river stones that anchor soil contour waves and create natural mineral condensation pathways.",
-      },
-      {
-        name: "Integrated Smart Lid System",
-        category: "Hardware Engine",
-        description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
-      },
-    ],
-    care: [
-      {
-        label: "Circadian Light",
-        schedule: "8–10h Daily Cycle",
-        detail:
-          "Built-in full-spectrum Halo LED provides optimal PAR light without producing excess heat. No direct window sun needed.",
-      },
-      {
-        label: "Ultrasonic Mist",
-        schedule: "2–3 Times Weekly",
-        detail:
-          "Cycle the built-in fogger for 3–5 minutes whenever the glass appears dry or frond tips need refreshment.",
-      },
-      {
-        label: "Distilled Water",
-        schedule: "Monthly Reservoir Top-Up",
-        detail:
-          "Refill the concealed top hatch with 2–3 oz of distilled or reverse-osmosis water to keep ultrasonic misting discs mineral-free.",
-      },
-      {
-        label: "Gentle Pruning",
-        schedule: "Every 3–4 Months",
-        detail:
-          "If a fern frond nears the glass lid, trim cleanly at the stem base with small shears to encourage bushier canopy growth.",
-      },
-    ],
-  },
-  fern_study: {
-    id: "fern_study",
-    edition: "Studio edition · 02",
-    name: "Fern Study",
-    tagline: "Contrasting architectural fronds, ruby nerve venation, and dark volcanic rock walls.",
-    sku: EDITION_PRODUCTS.fern_study.sku,
-    priceCents: EDITION_PRODUCTS.fern_study.priceCents,
-    image: images.fern,
-    vessel: "Tall Apothecary Jar · 14 in",
-    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
-    overview:
-      "A rich botanical exploration of leaf geometry and geological contrast. The intense ruby and blush venation of Fittonia stands out dramatically against the deep black scoria of volcanic rock walls and arching button fern stems.",
-    story:
-      "We sculpt the volcanic rock backwall piece by piece, locking porous basalt stones together so epiphyte roots can weave securely through the crevices. The result is a dramatic shaded tropical grotto that thrives in indoor spaces.",
-    presetKey: "fern_study",
-    flora: [
-      {
-        name: "Fittonia Trio (Nerve Plant)",
-        botanical: "Fittonia albivenis",
-        role: "Focal Foliage Accent",
-        description:
-          "Striking ruby, blush, and white mosaic-veined leaves that serve as a natural living hygrometer—softening when dry and perking up when misted.",
-        humidity: "75% – 90% RH",
-        light: "Warm 4000K–5000K LED",
-      },
-      {
-        name: "Button Fern",
-        botanical: "Pellaea rotundifolia",
-        role: "Structural Green Fronds",
-        description:
-          "Arching dark emerald fronds that rise above the volcanic rock face, providing dramatic height and organic texture.",
-        humidity: "70% – 85% RH",
-        light: "Full-Spectrum Canopy Light",
-      },
-      {
-        name: "Cushion Moss",
-        botanical: "Leucobryum glaucum",
-        role: "Rock Crevice Base",
-        description:
-          "Compact emerald mounds nestled into the base of the lava rock wall to anchor root zones and stabilize humidity.",
-        humidity: "70% – 90% RH",
-        light: "Soft Diffused LED",
-      },
-    ],
-    elements: [
-      {
-        name: "Volcanic Scoria Backwall",
-        category: "Hardscape Specimen",
-        description:
-          "Stacked natural black volcanic scoria boulders with porous cellular pockets that naturally retain micro-droplets of water.",
-      },
-      {
-        name: "Five-Layer Drainage Foundation",
-        category: "Stratified Foundation",
-        description:
-          "Expanded clay base, biochar purification filter, and tropical bark humus blend engineered specifically for humidity-loving ferns.",
-      },
-      {
-        name: "Integrated Smart Lid System",
-        category: "Hardware Engine",
-        description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
-      },
-    ],
-    care: [
-      {
-        label: "Circadian Light",
-        schedule: "8–10h Daily Cycle",
-        detail:
-          "The under-lid LED illuminates the venation of the Fittonia and gives ferns steady, reliable daylight.",
-      },
-      {
-        label: "Ultrasonic Mist",
-        schedule: "Every 2–3 Days",
-        detail:
-          "Run the fogger for 5 minutes. The porous volcanic rock absorbs ambient mist and gradually releases it throughout the day.",
-      },
-      {
-        label: "Distilled Water",
-        schedule: "Monthly Top-Up",
-        detail:
-          "Always use distilled water to prevent white calcium mineral scale from accumulating on the dark volcanic stone.",
-      },
-      {
-        label: "Leaf Hydration",
-        schedule: "Visual Observation",
-        detail:
-          "Observe the Fittonia leaves—if they look slightly relaxed, a quick misting cycle will have them standing tall within an hour.",
-      },
-    ],
-  },
-  moss_garden: {
-    id: "moss_garden",
-    edition: "Studio edition · 03",
-    name: "Moss Garden",
-    tagline: "A tranquil Japanese woodland Zen composition featuring ancient clubmoss and silica ribbons.",
-    sku: EDITION_PRODUCTS.moss_garden.sku,
-    priceCents: EDITION_PRODUCTS.moss_garden.priceCents,
-    image: images.moss,
-    vessel: "Tall Fluted Apothecary Jar · 14 in",
-    vesselNote: "Helical ridged matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
-    overview:
-      "A minimalist meditation on ancient non-vascular bryophytes. Contoured ribbons of fine white silica sand flow between velvety domes of cushion moss and feathery plumes of prehistoric Selaginella clubmoss beneath a fluted ridged collar.",
-    story:
-      "Moss is the oldest land plant on Earth, surviving for over 450 million years. In this sealed apothecary vessel, moss recycles its own moisture in an almost closed loop, creating an extraordinarily peaceful, low-maintenance living companion.",
-    presetKey: "moss_garden",
-    flora: [
-      {
-        name: "Cushion Moss",
-        botanical: "Leucobryum glaucum",
-        role: "Primary Zen Mounds",
-        description:
-          "Smooth, undulating domes of velvet-green moss that stay vivid year-round and absorb ambient mist directly through their leaves.",
-        humidity: "75% – 95% RH",
-        light: "Soft 5000K Diffused Glow",
-      },
-      {
-        name: "Selaginella Clubmoss",
-        botanical: "Selaginella kraussiana",
-        role: "Feathery Micro-Canopy",
-        description:
-          "Delicate, lace-like prehistoric foliage that arches above the moss pillows, resembling miniature ancient cedar trees.",
-        humidity: "70% – 90% RH",
-        light: "Gentle Daylight LED",
-      },
-      {
-        name: "Living Root Fiber Barrier",
-        botanical: "Sphagnum capillifolium",
-        role: "Substrate Boundary",
-        description:
-          "Micro-woven moss root layer that prevents fine soils from shifting into the decorative silica quartz ribbon.",
-        humidity: "80% – 95% RH",
-        light: "Low Ambient Light",
-      },
-    ],
-    elements: [
-      {
-        name: "Silica Quartz Ribbon",
-        category: "Decorative Horizon",
-        description:
-          "A sculpted white quartz sand horizon that reflects LED light upward into the emerald canopy.",
-      },
-      {
-        name: "Helical Ridged Apothecary Lid",
-        category: "Vessel Collar",
-        description:
-          "Custom-molded matte-white lid featuring architectural diagonal fluting and concealed USB-A power routing.",
-      },
-      {
-        name: "Integrated Smart Lid System",
-        category: "Hardware Engine",
-        description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
-      },
-    ],
-    care: [
-      {
-        label: "Circadian Light",
-        schedule: "6–8h Daily Cycle",
-        detail:
-          "Moss prefers gentle, cooler light. The built-in LED provides the ideal spectrum without drying out the domes.",
-      },
-      {
-        label: "Ultrasonic Mist",
-        schedule: "Once or Twice Weekly",
-        detail:
-          "A brief 3-minute mist cycle is all that is required. Dew settles gently across the cushion tops.",
-      },
-      {
-        label: "Distilled Water",
-        schedule: "Every 4–6 Weeks",
-        detail:
-          "Because closed moss recycling is so efficient, reservoir refills are needed only once every month or two.",
-      },
-      {
-        label: "Condensation Check",
-        schedule: "Self-Regulating",
-        detail:
-          "Light morning fog on the glass is normal and healthy. The built-in micro fan gently circulates air to maintain clarity.",
-      },
-    ],
-  },
-};
-
-function ArrowIcon() {
+export function ArrowIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="M4 10h11M11 6l4 4-4 4" />
@@ -415,7 +54,7 @@ function ArrowIcon() {
   );
 }
 
-function LeafMark() {
+export function LeafMark() {
   return (
     <svg viewBox="0 0 44 44" aria-hidden="true" className="leaf-mark">
       <g transform="translate(11, 4.583333)" fill="currentColor" stroke="none">
@@ -437,461 +76,6 @@ function LeafMark() {
         <path d="M6.325 1.7C3.94167 0.508334 1.83333 0.875 0 2.8C1.7875 4.81667 3.89583 5.1375 6.325 3.71667M6.69167 0.6C8.98333 -0.5 11.0458 -0.0874997 12.8333 1.8375C10.9542 3.67083 8.89167 3.9 6.64583 2.3875" />
       </g>
     </svg>
-  );
-}
-
-export type ChosenOption = Option & { quantity: number };
-
-const BUILDER_SELECTED_STORAGE = "terrascape_builder_selected_v1";
-const BUILDER_SOIL_STORAGE = "terrascape_builder_soil_v1";
-const BUILDER_CATEGORY_STORAGE = "terrascape_builder_category_v1";
-
-function getStoredBuilderSelected(): string[] {
-  try {
-    const raw = sessionStorage.getItem(BUILDER_SELECTED_STORAGE);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function getStoredBuilderSoil(): SoilLayerSpec[] {
-  try {
-    const raw = sessionStorage.getItem(BUILDER_SOIL_STORAGE);
-    return raw ? JSON.parse(raw) : SOIL_RECIPES.forest;
-  } catch {
-    return SOIL_RECIPES.forest;
-  }
-}
-
-function getStoredBuilderCategory(): Category {
-  try {
-    const raw = sessionStorage.getItem(BUILDER_CATEGORY_STORAGE);
-    if (raw === "Vessel" || raw === "Foundation" || raw === "Flora" || raw === "Details") {
-      return raw;
-    }
-  } catch {}
-  return "Vessel";
-}
-
-export function App() {
-  const [route, setRoute] = useState<RouteInfo>(() => {
-    if (typeof window === "undefined") {
-      return { page: "home", path: "/collections" };
-    }
-    const current = parsePath(window.location.pathname);
-    if (window.location.pathname === "/" || current.redirectFromRoot) {
-      window.history.replaceState(null, "", "/collections");
-    }
-    return current;
-  });
-
-  const page = route.page;
-  const { user: currentUser, signOut } = useAuth();
-  const [selectedEdition, setSelectedEdition] = useState<EditionKey>(
-    () => route.editionId || "cloud_forest"
-  );
-  const [activeCategory, setActiveCategory] = useState<Category>(getStoredBuilderCategory);
-  const [selected, setSelected] = useState<string[]>(getStoredBuilderSelected);
-  const [soilLayers, setSoilLayers] = useState<SoilLayerSpec[]>(getStoredBuilderSoil);
-  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Escape closes the mobile menu and returns focus to its button.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-        menuButtonRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [menuOpen]);
-
-  // Sync builder selections to session storage to persist across navigations/refreshes
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(BUILDER_SELECTED_STORAGE, JSON.stringify(selected));
-    } catch {}
-  }, [selected]);
-
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(BUILDER_SOIL_STORAGE, JSON.stringify(soilLayers));
-    } catch {}
-  }, [soilLayers]);
-
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(BUILDER_CATEGORY_STORAGE, activeCategory);
-    } catch {}
-  }, [activeCategory]);
-
-  // Listen to browser Back and Forward button events
-  useEffect(() => {
-    const handlePopState = () => {
-      const current = parsePath(window.location.pathname);
-      if (window.location.pathname === "/" || current.redirectFromRoot) {
-        window.history.replaceState(null, "", "/collections");
-      }
-      setRoute(current);
-      if (current.editionId) {
-        setSelectedEdition(current.editionId);
-      }
-      setMenuOpen(false);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  const navigate = (
-    next: Page | string,
-    options?: { replace?: boolean; editionId?: EditionKey }
-  ) => {
-    let targetEditionId = options?.editionId;
-    if (next === "edition" && !targetEditionId) {
-      targetEditionId = selectedEdition;
-    }
-
-    const { path, redirectFromRoot } = resolvePath(next, { editionId: targetEditionId });
-    const nextRoute = parsePath(path);
-    if (targetEditionId) {
-      nextRoute.editionId = targetEditionId;
-      setSelectedEdition(targetEditionId);
-    } else if (nextRoute.editionId) {
-      setSelectedEdition(nextRoute.editionId);
-    }
-
-    if (redirectFromRoot || options?.replace) {
-      window.history.replaceState(null, "", nextRoute.path);
-    } else if (window.location.pathname !== nextRoute.path) {
-      window.history.pushState(null, "", nextRoute.path);
-    }
-
-    setRoute(nextRoute);
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/collections");
-  };
-
-  const chosen: ChosenOption[] = useMemo(() => {
-    return options
-      .map((option) => ({
-        ...option,
-        quantity: selected.filter((id) => id === option.id).length,
-      }))
-      .filter((item) => item.quantity > 0);
-  }, [selected]);
-
-  const totalElements = useMemo(
-    () => chosen.reduce((sum, item) => sum + item.quantity, 0),
-    [chosen]
-  );
-
-  const subtotalCents = useMemo(
-    () => chosen.reduce((sum, item) => sum + item.priceCents * item.quantity, 0),
-    [chosen]
-  );
-
-  const openEdition = (key: EditionKey) => {
-    setSelectedEdition(key);
-    navigate(`/editions/${key}`, { editionId: key });
-  };
-
-  const loadSignaturePreset = (presetKey: keyof typeof SIGNATURE_PRESETS) => {
-    const preset = SIGNATURE_PRESETS[presetKey];
-    if (!preset) return;
-    setSelected(preset.selected);
-    setSoilLayers(SOIL_RECIPES[preset.recipeKey].map((l) => ({ ...l })));
-    setActiveCategory("Vessel");
-    navigate("/studio");
-  };
-
-  const toggleOption = (option: Option) => {
-    if (option.category === "Foundation" && SOIL_RECIPES[option.id]) {
-      setSoilLayers(SOIL_RECIPES[option.id].map((l) => ({ ...l })));
-    }
-    setSelected((current) => {
-      const singleSelect = option.category === "Vessel" || option.category === "Foundation";
-      if (singleSelect) {
-        const withoutCategory = current.filter(
-          (id) => options.find((item) => item.id === id)?.category !== option.category
-        );
-        return [...withoutCategory, option.id];
-      }
-      return current.includes(option.id)
-        ? current.filter((id) => id !== option.id)
-        : [...current, option.id];
-    });
-  };
-
-  const adjustOptionQuantity = (option: Option, delta: number) => {
-    setSelected((current) => {
-      const currentCount = current.filter((id) => id === option.id).length;
-      const nextCount = Math.max(0, Math.min(MAX_ELEMENT_QUANTITY, currentCount + delta));
-      const withoutOption = current.filter((id) => id !== option.id);
-      return [...withoutOption, ...Array(nextCount).fill(option.id)];
-    });
-  };
-
-  const { openCart, itemCount, openTrackerModal, orders, addStandardItem, addCustomBlueprint } =
-    useCart();
-
-  // Opens the jar for everyone; signing in is only required at checkout.
-  const addEditionToJar = (edition: StudioEdition) => {
-    addStandardItem({
-      type: "signature_build",
-      name: `${edition.name} (${edition.edition})`,
-      sku: edition.sku,
-      description: `${edition.vessel} · Includes live flora, stratified substrates & integrated smart lid`,
-    });
-  };
-
-  /** Adds the current Studio design to the jar. Returns the steps still missing, if any. */
-  const addStudioDesignToJar = (): StudioCategory[] => {
-    const result = buildStudioBlueprint(selected, soilLayers);
-    // `in` narrows the union even without strictNullChecks.
-    if ("missing" in result) return result.missing;
-    addCustomBlueprint(result.blueprint);
-    return [];
-  };
-
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
-      return;
-    }
-    e.preventDefault();
-    navigate(path);
-  };
-
-  return (
-    <div className="app-shell">
-      <header className="site-header">
-        <a
-          href="/"
-          className="brand"
-          onClick={(e) => handleLinkClick(e, "/")}
-          aria-label="TerraScape home"
-        >
-          <LeafMark />
-          <span>
-            Terra<span className="brand-scape">Scape</span>
-          </span>
-        </a>
-        <nav id="main-navigation" className={menuOpen ? "nav open" : "nav"} aria-label="Main navigation">
-          <a
-            href="/collections"
-            className={page === "home" ? "active" : ""}
-            onClick={(e) => handleLinkClick(e, "/collections")}
-          >
-            Collection
-          </a>
-          <a
-            href="/our-story"
-            className={page === "about" || page === "design" ? "active" : ""}
-            onClick={(e) => handleLinkClick(e, "/our-story")}
-          >
-            Our Story
-          </a>
-          <a
-            href="/studio"
-            className={page === "build" ? "active" : ""}
-            onClick={(e) => handleLinkClick(e, "/studio")}
-          >
-            Studio
-          </a>
-          <a
-            href="/terracare"
-            className={page === "terracare" ? "active" : ""}
-            onClick={(e) => handleLinkClick(e, "/terracare")}
-          >
-            TerraCare
-          </a>
-          <a
-            href="/faq"
-            className={page === "faq" ? "active" : ""}
-            onClick={(e) => handleLinkClick(e, "/faq")}
-          >
-            FAQ
-          </a>
-        </nav>
-        <div className="header-actions">
-          {orders.length > 0 && (
-            <button
-              className="text-button"
-              onClick={() => openTrackerModal()}
-              title="Track Active Studio Builds"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-            >
-              <span
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  backgroundColor: "#34d399",
-                  display: "inline-block",
-                }}
-              />
-              Tracker ({orders.length})
-            </button>
-          )}
-
-          {currentUser ? (
-            <a
-              href="/account"
-              className="text-button account-link"
-              onClick={(e) => handleLinkClick(e, "/account")}
-              title={`Signed in as ${currentUser.name}`}
-            >
-              Account
-            </a>
-          ) : (
-            <button
-              className="nav-cta-button"
-              onClick={() => {
-                setAuthMode("login");
-                navigate("/account");
-              }}
-              title="Sign in or create a TerraScape account"
-            >
-              <span className="cta-label-full">Login / Create account</span>
-              <span className="cta-label-short">Log in</span>
-            </button>
-          )}
-
-          {(currentUser || itemCount > 0) && (
-            <button className="bag-button" onClick={openCart} title="Open Your Jar">
-              Your Jar <span>{itemCount}</span>
-            </button>
-          )}
-
-          <button
-            ref={menuButtonRef}
-            type="button"
-            className={menuOpen ? "menu-button open" : "menu-button"}
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-            aria-controls="main-navigation"
-          >
-            <span />
-            <span />
-          </button>
-        </div>
-      </header>
-
-      <main>
-        {page === "home" && (
-          <Home navigate={navigate} openEdition={openEdition} />
-        )}
-        {page === "design" && <DesignPage navigate={navigate} selected={selected} />}
-        {page === "build" && (
-          <Builder
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            selected={selected}
-            toggleOption={toggleOption}
-            adjustOptionQuantity={adjustOptionQuantity}
-            soilLayers={soilLayers}
-            setSoilLayers={setSoilLayers}
-            totalElements={totalElements}
-            subtotalCents={subtotalCents}
-            onAddToJar={addStudioDesignToJar}
-          />
-        )}
-        {page === "edition" && (
-          <EditionDetailPage
-            edition={STUDIO_EDITIONS[selectedEdition]}
-            navigate={navigate}
-            loadSignaturePreset={loadSignaturePreset}
-            addEditionToJar={addEditionToJar}
-          />
-        )}
-        {page === "terracare" && <TerraCarePage navigate={navigate} />}
-        {page === "about" && <About navigate={navigate} selected={selected} />}
-        {page === "faq" && <FaqPage navigate={navigate} />}
-        {page === "notFound" && <NotFoundPage navigate={navigate} />}
-        {page === "account" && (
-          <Account
-            mode={authMode}
-            setMode={setAuthMode}
-            navigate={navigate}
-            currentUser={currentUser}
-            onLogout={handleLogout}
-          />
-        )}
-      </main>
-
-      {page !== "build" && page !== "account" && (
-        <footer>
-          <div className="footer-brand">
-            <div className="brand footer-wordmark">
-              <LeafMark />
-              <span>
-                Terra<span className="brand-scape">Scape</span>
-              </span>
-            </div>
-            <p>
-              Small worlds,
-              <br />
-              grown with intention.
-            </p>
-          </div>
-          <div>
-            <strong>Explore</strong>
-            <a
-              href="/collections"
-              onClick={(e) => handleLinkClick(e, "/collections")}
-            >
-              Collection
-            </a>
-            <a
-              href="/our-story"
-              onClick={(e) => handleLinkClick(e, "/our-story")}
-            >
-              Our Story
-            </a>
-            <a
-              href="/studio"
-              onClick={(e) => handleLinkClick(e, "/studio")}
-            >
-              Studio
-            </a>
-            <a
-              href="/terracare"
-              onClick={(e) => handleLinkClick(e, "/terracare")}
-            >
-              TerraCare
-            </a>
-            <a
-              href="/faq"
-              onClick={(e) => handleLinkClick(e, "/faq")}
-            >
-              FAQ
-            </a>
-          </div>
-          <div className="newsletter">
-            <strong>Notes from the greenhouse</strong>
-            <p>Seasonal care, new flora, and studio stories from Los Angeles, CA.</p>
-            <label>
-              <input type="email" placeholder="Email address" />
-              <button aria-label="Subscribe">
-                <ArrowIcon />
-              </button>
-            </label>
-          </div>
-          <small>© 2026 TerraScape · Los Angeles, CA · Living worlds, made by hand.</small>
-        </footer>
-      )}
-    </div>
   );
 }
 
@@ -1043,126 +227,21 @@ function Home({
 }
 
 /**
- * DESIGN PAGE: Interactive 3D Showcase + Production Process Story.
- */
-function DesignPage({
-  navigate,
-  selected,
-}: {
-  navigate: (page: Page) => void;
-  selected: string[];
-}) {
-  return (
-    <>
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Interactive 3D & Craft</p>
-          <h1>
-            Thoughtfully shaped,
-            <br />
-            <em>inside and out.</em>
-          </h1>
-          <p className="lead">
-            Explore our circular apothecary vessel in 3D. Toggle the gentle canopy light and
-            fogger, then see how each piece is crafted and planted in our studio.
-          </p>
-          <div className="hero-cta-row">
-            <button className="primary-button" onClick={() => navigate("build")}>
-              Customize yours in the Studio <ArrowIcon />
-            </button>
-          </div>
-          <div className="hero-note">
-            <span>3D</span>
-            <p>
-              Use the <strong>3D</strong> and <strong>Studio</strong> tabs on the viewer to rotate
-              the vessel or toggle the <strong>Fogger</strong> and <strong>LED</strong>.
-            </p>
-          </div>
-        </div>
-        <div className="hero-image">
-          <Terrarium3DShowcase
-            selectedIds={selected}
-            fallbackPhotoUrl={images.hero}
-            captionTitle="Interactive 3D Vessel"
-            captionPrice="Rotate 360° · Toggle Fogger & LED"
-          />
-        </div>
-      </section>
-
-      <section className="engineering-strip">
-        <div className="eng-header">
-          <p className="eyebrow">Our production process</p>
-          <h2>
-            How a TerraScape
-            <br />
-            <em>comes to life.</em>
-          </h2>
-          <p>
-            Every terrarium moves through four unhurried stages in our Los Angeles, CA workshop—blending
-            traditional glassmaking, small-batch lid fabrication, and patient greenhouse care.
-          </p>
-        </div>
-        <div className="eng-cards four-col">
-          <article>
-            <span>Stage 01 · Vessel & Lid</span>
-            <h3>Blown Glass & Collar</h3>
-            <p>
-              We start with a tall, clear circular glass jar and pair it with our custom-molded
-              matte-white lid—available in a clean smooth profile or a softly fluted ridge finish.
-            </p>
-          </article>
-          <article>
-            <span>Stage 02 · Under the Lid</span>
-            <h3>Quiet Light & Mist</h3>
-            <p>
-              Nestled directly beneath the lid is a slim unit that houses a warm full-spectrum
-              grow light and a whisper-quiet fogger, powered by a clean white USB-A cable.
-            </p>
-          </article>
-          <article>
-            <span>Stage 03 · Earth & Stone</span>
-            <h3>Layered by Hand</h3>
-            <p>
-              We build a five-layer foundation of clay pebbles, activated biochar, and rich
-              woodland soil, then sculpt volcanic rock walls and weathered Mopani wood.
-            </p>
-          </article>
-          <article>
-            <span>Stage 04 · Acclimation</span>
-            <h3>Grown Before It Ships</h3>
-            <p>
-              After planting ferns, fittonia, and pillow moss, each vessel rests in our greenhouse
-              so the roots settle and the humidity cycle balances before delivery.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section className="story-grid">
-        <img src={images.collection} alt="Handcrafted terrariums in the studio" />
-        <div>
-          <span className="chapter">Designed for longevity</span>
-          <h2>Crafted so nature does the rest.</h2>
-          <p>
-            Most indoor plants struggle because home air is too dry and window light changes with
-            the seasons. By enclosing the ecosystem under glass and tucking a gentle light and
-            mister into the lid, your terrarium creates its own peaceful rain-forest cycle.
-          </p>
-          <p>
-            Ready to choose your vessel, foundation, and plants? Step into our guided studio.
-          </p>
-          <button className="primary-button" onClick={() => navigate("build")}>
-            Open the Studio <ArrowIcon />
-          </button>
-        </div>
-      </section>
-    </>
-  );
-}
-
-/**
  * THE STUDIO: Calm 5-step guided builder with art-directed 2D layered preview.
  */
+/** How each required step is described in hints and the missing-steps message. */
+const STEP_REQUIREMENT: Record<Category, string> = {
+  Vessel: "a vessel",
+  Foundation: "a foundation",
+  Flora: "at least one plant",
+  Details: "at least one detail",
+};
+
+/** "a", "a and b", "a, b and c" */
+function listPhrases(phrases: string[]): string {
+  return phrases.length <= 1 ? phrases.join("") : `${phrases.slice(0, -1).join(", ")} and ${phrases[phrases.length - 1]}`;
+}
+
 function Builder({
   activeCategory,
   setActiveCategory,
@@ -1191,11 +270,16 @@ function Builder({
 }) {
   const [soilDrawerOpen, setSoilDrawerOpen] = useState(false);
   const [triedToAdd, setTriedToAdd] = useState(false);
-  // Derived from the live selection so the message clears as soon as the step is filled.
-  const missingSteps = SINGLE_CHOICE_CATEGORIES.filter(
-    (category) => !selected.some((id) => getStudioOption(id)?.category === category)
+  const { isAuthenticated } = useAuth();
+  // Derived from the live selection so messages clear as soon as a step is filled.
+  const missingSteps = STUDIO_REQUIRED_CATEGORIES.filter(
+    (category) => !isStudioStepComplete(category, selected)
   );
   const showMissing = triedToAdd && missingSteps.length > 0;
+  const currentStepComplete = isStudioStepComplete(activeCategory, selected);
+  const reachableIndex = categories.indexOf(furthestReachableStep(selected));
+  // No soil in the preview until a foundation is chosen: the Studio starts as an empty jar.
+  const hasFoundation = selected.some((id) => getStudioOption(id)?.category === "Foundation");
 
   const handleAddToJar = () => {
     setTriedToAdd(onAddToJar().length > 0);
@@ -1237,9 +321,9 @@ function Builder({
 
         <Terrarium2DLayeredView
           selectedIds={selected}
-          soilLayers={soilLayers}
+          soilLayers={hasFoundation ? soilLayers : []}
           captionTitle="Live Studio Preview"
-          captionPrice={`${totalElements} elements · ${formatCents(subtotalCents)}`}
+          captionPrice={`${totalElements} ${totalElements === 1 ? "element" : "elements"} · ${formatCents(subtotalCents)}`}
         />
       </div>
 
@@ -1253,6 +337,12 @@ function Builder({
               key={category}
               className={category === activeCategory ? "active" : ""}
               onClick={() => setActiveCategory(category)}
+              disabled={index > reachableIndex}
+              title={
+                index > reachableIndex
+                  ? `Finish step 0${reachableIndex + 1} · ${categories[reachableIndex]} first`
+                  : undefined
+              }
             >
               <small>0{index + 1}</small>
               {category}
@@ -1271,7 +361,9 @@ function Builder({
                     ? (allowMultiQuantityFlora
                         ? "Multi-select · Multiple quantities"
                         : "Multi-select · Choose any")
-                    : "Multi-select · Choose any"}
+                    : STUDIO_REQUIRED_CATEGORIES.includes(activeCategory)
+                      ? "Multi-select · Choose any"
+                      : "Optional · Choose any"}
               </span>
             </div>
             <h2>Choose your {activeCategory.toLowerCase()}.</h2>
@@ -1455,8 +547,8 @@ function Builder({
         {showMissing && (
           <div className="builder-missing" role="alert">
             <p>
-              Choose a {missingSteps.map((category) => category.toLowerCase()).join(" and a ")}{" "}
-              before adding your design to the jar.
+              Choose {listPhrases(missingSteps.map((category) => STEP_REQUIREMENT[category]))} before
+              adding your design to the jar.
             </p>
             <div className="builder-missing-actions">
               {missingSteps.map((category) => (
@@ -1478,6 +570,7 @@ function Builder({
             Courier and pickup orders are planted and assembled in our Los Angeles studio
             (+{formatCents(ASSEMBLY_FEE_CENTS)} per build). Choose nationwide shipping in your jar to
             receive it as a DIY kit instead.
+            {!isAuthenticated && " You'll sign in or create a free account to save your design to your jar."}
           </p>
         )}
 
@@ -1490,38 +583,37 @@ function Builder({
             <button
               className="primary-button"
               onClick={() => setActiveCategory(categories[step])}
+              disabled={!currentStepComplete}
+              aria-describedby={currentStepComplete ? undefined : "builder-step-hint"}
             >
               Continue <ArrowIcon />
             </button>
           ) : (
-            <button className="primary-button" onClick={handleAddToJar}>
+            <button
+              className="primary-button"
+              onClick={handleAddToJar}
+              disabled={!currentStepComplete}
+              aria-describedby={currentStepComplete ? undefined : "builder-step-hint"}
+            >
               Add to Your Jar <ArrowIcon />
             </button>
           )}
         </div>
+        <p id="builder-step-hint" className="builder-step-hint" aria-live="polite">
+          {currentStepComplete
+            ? ""
+            : `Choose ${STEP_REQUIREMENT[activeCategory]} to ${step < categories.length ? "continue" : "add your design to the jar"}.`}
+        </p>
       </div>
     </section>
   );
 }
 
 /**
- * NOT FOUND PAGE: shown for mistyped or outdated links instead of silently sending visitors home.
+ * NOT FOUND PAGE: shown for mistyped or outdated links. The route sets the title, the noindex tag
+ * and the 404 status.
  */
 function NotFoundPage({ navigate }: { navigate: (page: Page) => void }) {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = "Page not found · TerraScape";
-    // Vercel serves the app (status 200) for every path, so tell search engines not to index this one
-    const robots = document.createElement("meta");
-    robots.name = "robots";
-    robots.content = "noindex";
-    document.head.appendChild(robots);
-    return () => {
-      document.title = previousTitle;
-      robots.remove();
-    };
-  }, []);
-
   return (
     <section className="about-hero not-found">
       <div>
@@ -2346,14 +1438,104 @@ function Account({
   );
 }
 
-export default function AppWithModals() {
+
+// ---------------------------------------------------------------------------
+// Route views: each App Router page renders one of these. They connect the page components
+// above to the shared Studio state, the cart and the router.
+// ---------------------------------------------------------------------------
+
+export function CollectionsView() {
+  const navigate = useAppNavigate();
+  return <Home navigate={navigate} openEdition={(key) => navigate(`/editions/${key}`)} />;
+}
+
+export function StudioView() {
+  const studio = useStudio();
   return (
-    <>
-      <App />
-      <CartDrawer />
-      <StripeCheckoutModal />
-      <OrderTrackerModal />
-      <AuthModal />
-    </>
+    <Builder
+      activeCategory={studio.activeCategory}
+      setActiveCategory={studio.setActiveCategory}
+      selected={studio.selected}
+      toggleOption={studio.toggleOption}
+      adjustOptionQuantity={studio.adjustOptionQuantity}
+      soilLayers={studio.soilLayers}
+      setSoilLayers={studio.setSoilLayers}
+      totalElements={studio.totalElements}
+      subtotalCents={studio.subtotalCents}
+      onAddToJar={studio.addStudioDesignToJar}
+    />
+  );
+}
+
+export function OurStoryView() {
+  const navigate = useAppNavigate();
+  const { selected } = useStudio();
+  return <About navigate={navigate} selected={selected} />;
+}
+
+export function TerraCareView() {
+  return <TerraCarePage navigate={useAppNavigate()} />;
+}
+
+export function FaqView() {
+  return <FaqPage navigate={useAppNavigate()} />;
+}
+
+export function NotFoundView() {
+  return <NotFoundPage navigate={useAppNavigate()} />;
+}
+
+export function EditionView({ id }: { id: EditionKey }) {
+  const navigate = useAppNavigate();
+  const { loadSignaturePreset } = useStudio();
+  const { addStandardItem } = useCart();
+  const runSignedIn = useSignedInAction();
+
+  // Adding to the jar needs an account; guests are asked to sign in first.
+  const addEditionToJar = (edition: StudioEdition) => {
+    runSignedIn(
+      () =>
+        addStandardItem({
+          type: "signature_build",
+          name: `${edition.name} (${edition.edition})`,
+          sku: edition.sku,
+          description: `${edition.vessel} · Includes live flora, stratified substrates & integrated smart lid`,
+        }),
+      ADD_TO_JAR_PROMPT
+    );
+  };
+
+  return (
+    <EditionDetailPage
+      edition={STUDIO_EDITIONS[id]}
+      navigate={navigate}
+      loadSignaturePreset={loadSignaturePreset}
+      addEditionToJar={addEditionToJar}
+    />
+  );
+}
+
+/** `initialMode` comes from `/account?mode=login` (the header's sign-in link). */
+export function AccountView({ initialMode }: { initialMode: "signup" | "login" }) {
+  const navigate = useAppNavigate();
+  const { user: currentUser, signOut } = useAuth();
+  const [mode, setMode] = useState<"signup" | "login">(initialMode);
+  const [modeFromUrl, setModeFromUrl] = useState(initialMode);
+  if (modeFromUrl !== initialMode) {
+    setModeFromUrl(initialMode);
+    setMode(initialMode);
+  }
+
+  return (
+    <Account
+      mode={mode}
+      setMode={setMode}
+      navigate={navigate}
+      currentUser={currentUser}
+      onLogout={async () => {
+        await signOut();
+        navigate("/collections");
+      }}
+    />
   );
 }
