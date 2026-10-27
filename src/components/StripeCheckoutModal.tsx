@@ -16,6 +16,7 @@ import { formatCentsExact } from '../catalog/money';
 import { TAX_RATE_LABEL } from '../catalog/delivery';
 import { createStripeOrder, quoteOrder } from '../utils/stripeCheckoutEngine';
 import { DeliveryOptionPicker } from './DeliveryOptionPicker';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export const StripeCheckoutModal: React.FC = () => {
   const { items, isCheckoutModalOpen, closeCheckoutModal, saveOrder, shippingOption, setShippingOption } =
@@ -50,6 +51,11 @@ export const StripeCheckoutModal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  // Escape can't close the modal while a payment is processing (the close button is disabled then too).
+  const dialogRef = useDialogFocus(isCheckoutModalOpen, () => {
+    if (!isProcessing) closeCheckoutModal();
+  });
 
   if (!isCheckoutModalOpen) return null;
 
@@ -152,6 +158,8 @@ export const StripeCheckoutModal: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="checkout-modal-title"
+      ref={dialogRef}
+      tabIndex={-1}
     >
       <div className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl max-w-3xl w-full max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl text-[#18392b]">
         {/* Modal Header */}

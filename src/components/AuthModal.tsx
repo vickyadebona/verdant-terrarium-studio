@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Lock, Mail, User as UserIcon, ArrowRight, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, authModalConfig, closeAuthModal, signIn } = useAuth();
@@ -11,6 +12,9 @@ export const AuthModal: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const dialogRef = useDialogFocus(isAuthModalOpen, () => {
+    if (!isLoading) closeAuthModal();
+  });
 
   if (!isAuthModalOpen) return null;
 
@@ -80,6 +84,8 @@ export const AuthModal: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#18392b]/40 backdrop-blur-sm animate-fade-in"
     >
       <div className="relative w-full max-w-md bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl shadow-2xl p-5 sm:p-7 overflow-hidden text-[#18392b] max-h-[92vh] flex flex-col">

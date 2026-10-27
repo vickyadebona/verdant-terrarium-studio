@@ -6,7 +6,7 @@ import type {
   SerializedBlueprint,
   StageHistoryEntry,
 } from '../types/terrarium';
-import { STUDIO_TEAM_LABEL, verifiedUnitPriceCents } from '../utils/stripeCheckoutEngine';
+import { STUDIO_TEAM_LABEL, maxQuantityFor, verifiedUnitPriceCents } from '../utils/stripeCheckoutEngine';
 import { QUARANTINE_HOURS, isShippingOption, type ShippingOption } from '../catalog/delivery';
 
 type StandardCartItemInput = Pick<CartItem, 'type' | 'sku' | 'name' | 'description'>;
@@ -68,7 +68,8 @@ function loadShippingOption(): ShippingOption {
 function repriceStoredItem(stored: CartItem & { fulfillmentType?: unknown }): CartItem {
   const { fulfillmentType: _legacyFulfillment, ...item } = stored;
   const unitPriceCents = verifiedUnitPriceCents(item);
-  return unitPriceCents === null ? item : { ...item, unitPriceCents };
+  const quantity = Math.min(item.quantity, maxQuantityFor(item));
+  return unitPriceCents === null ? { ...item, quantity } : { ...item, unitPriceCents, quantity };
 }
 
 function loadStoredList<T>(key: string, isValid: (value: unknown) => boolean): T[] {
@@ -234,7 +235,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existing = prev.find((i) => i.sku === item.sku && i.type === item.type);
       if (existing) {
         return prev.map((i) =>
-          i.id === existing.id ? { ...i, unitPriceCents, quantity: i.quantity + quantity } : i
+          i.id === existing.id
+            ? { ...i, unitPriceCents, quantity: Math.min(i.quantity + quantity, maxQuantityFor(i)) }
+            : i
         );
       }
       return [
@@ -242,7 +245,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...item,
           id: `item-${item.sku}-${Date.now()}`,
           unitPriceCents,
-          quantity,
+          quantity: Math.min(quantity, maxQuantityFor(item)),
         },
         ...prev,
       ];
@@ -260,7 +263,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       prev
         .map((item) => {
           if (item.id === id) {
-            const nextQty = item.quantity + delta;
+            const nextQty = Math.min(item.quantity + delta, maxQuantityFor(item));
             return nextQty > 0 ? { ...item, quantity: nextQty } : null;
           }
           return item;

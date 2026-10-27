@@ -62,6 +62,19 @@
   margin-bottom: 1rem;
 }
 
+/* Dialogs take focus programmatically when they open; the outline would frame the whole overlay */
+[role="dialog"][tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Not-found page actions */
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
 /* Header Navigation */
 .site-header {
   position: sticky;

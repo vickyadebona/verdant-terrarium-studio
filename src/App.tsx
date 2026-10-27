@@ -52,12 +52,13 @@ const images = {
   jar: "https://images.unsplash.com/photo-1738061422017-8b647262e703?auto=format&fit=crop&w=1000&q=85",
 };
 
-// Studio product photos, keyed by Studio option id.
-const optionImages: Partial<Record<string, string>> = {
-  fern: images.jar,
-  fittonia: images.fern,
-  moss: images.moss,
-};
+// Studio option photos, keyed by Studio option id. Empty until there are real photos of each
+// option (the flora list is still a placeholder); cards without a photo show text only.
+const optionImages: Partial<Record<string, string>> = {};
+
+// The soil layer depth/contour controls under Foundation. Hidden for now; the component and
+// the default layer recipes stay in place, so set this to true to bring them back.
+const SHOW_SOIL_CUSTOMIZER = false;
 
 const options = STUDIO_OPTIONS;
 const categories = STUDIO_CATEGORIES;
@@ -817,6 +818,7 @@ export function App() {
         {page === "terracare" && <TerraCarePage navigate={navigate} />}
         {page === "about" && <About navigate={navigate} selected={selected} />}
         {page === "faq" && <FaqPage navigate={navigate} />}
+        {page === "notFound" && <NotFoundPage navigate={navigate} />}
         {page === "account" && (
           <Account
             mode={authMode}
@@ -1391,7 +1393,7 @@ function Builder({
           })}
         </div>
 
-        {activeCategory === "Foundation" && (
+        {SHOW_SOIL_CUSTOMIZER && activeCategory === "Foundation" && (
           <div className="soil-customizer-drawer">
             <button
               type="button"
@@ -1496,6 +1498,51 @@ function Builder({
               Add to Your Jar <ArrowIcon />
             </button>
           )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * NOT FOUND PAGE: shown for mistyped or outdated links instead of silently sending visitors home.
+ */
+function NotFoundPage({ navigate }: { navigate: (page: Page) => void }) {
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = "Page not found · TerraScape";
+    // Vercel serves the app (status 200) for every path, so tell search engines not to index this one
+    const robots = document.createElement("meta");
+    robots.name = "robots";
+    robots.content = "noindex";
+    document.head.appendChild(robots);
+    return () => {
+      document.title = previousTitle;
+      robots.remove();
+    };
+  }, []);
+
+  return (
+    <section className="about-hero not-found">
+      <div>
+        <p className="eyebrow">Page not found</p>
+        <h1>
+          This corner of the
+          <br />
+          <em>garden is empty.</em>
+        </h1>
+      </div>
+      <div>
+        <p className="lead">
+          The page you were looking for doesn&apos;t exist or has moved. Try one of these instead.
+        </p>
+        <div className="not-found-actions">
+          <button className="primary-button" onClick={() => navigate("home")}>
+            Browse the collection <ArrowIcon />
+          </button>
+          <button className="secondary-outline-button" onClick={() => navigate("build")}>
+            Design in the Studio
+          </button>
         </div>
       </div>
     </section>

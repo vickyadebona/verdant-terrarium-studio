@@ -6,7 +6,8 @@ export type Page =
   | "terracare"
   | "about"
   | "faq"
-  | "account";
+  | "account"
+  | "notFound";
 
 export type EditionKey = "cloud_forest" | "fern_study" | "moss_garden";
 
@@ -100,19 +101,21 @@ export function parsePath(pathname: string): RouteInfo {
   // Edition details route: /editions/:id or /edition/:id
   const editionMatch = clean.match(/^\/(?:editions|edition)\/([a-zA-Z0-9_-]+)$/);
   if (editionMatch) {
-    const rawKey = editionMatch[1] as EditionKey;
-    const editionId = VALID_EDITIONS.includes(rawKey) ? rawKey : "cloud_forest";
-    return {
-      page: "edition",
-      path: `/editions/${editionId}`,
-      editionId,
-    };
+    // Accept hyphenated links like /editions/fern-study as well as fern_study
+    const rawKey = editionMatch[1].toLowerCase().replace(/-/g, "_") as EditionKey;
+    if (VALID_EDITIONS.includes(rawKey)) {
+      return {
+        page: "edition",
+        path: `/editions/${rawKey}`,
+        editionId: rawKey,
+      };
+    }
   }
 
-  // Unknown route -> default to collections
+  // Unknown route: show the not-found page and keep the URL the visitor typed
   return {
-    page: "home",
-    path: "/collections",
+    page: "notFound",
+    path: clean,
   };
 }
 

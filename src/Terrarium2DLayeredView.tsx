@@ -283,6 +283,8 @@ export default function Terrarium2DLayeredView({
                   >
                     <path d="M0,45 Q-14,12 -28,-18" stroke="#234F32" strokeWidth="3" fill="none" />
                     <path d="M0,45 Q14,8 26,-24" stroke="#234F32" strokeWidth="3" fill="none" />
+                    {/* Centre stem carrying the top leaf at (-4, -38) */}
+                    <path d="M0,45 Q5,2 -4,-38" stroke="#234F32" strokeWidth="2.6" fill="none" strokeLinecap="round" />
                     {[
                       { x: -28, y: -18, r: -22 },
                       { x: 26, y: -24, r: 18 },

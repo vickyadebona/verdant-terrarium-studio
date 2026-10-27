@@ -54,4 +54,39 @@ describe('OrderTrackerModal', () => {
     expect(screen.getByText('Logged by: Our team')).toBeInTheDocument();
     expect(screen.queryByText(/Legacy Person/)).not.toBeInTheDocument();
   });
+
+  it('shows the order picked in the order selector', () => {
+    const make = () =>
+      createStripeOrder({
+        items: [
+          {
+            id: 'hw-1',
+            type: 'hardware',
+            sku: ACCESSORY_PRODUCTS.copperMicroLeds.sku,
+            name: ACCESSORY_PRODUCTS.copperMicroLeds.name,
+            unitPriceCents: ACCESSORY_PRODUCTS.copperMicroLeds.priceCents,
+            quantity: 1,
+          },
+        ],
+        customer: { name: 'Test Customer', email: 'customer@example.test' },
+        shipping: { street: '1 Test St', city: 'Testville', state: 'CA', zip: '90001', shippingOption: 'shipped' },
+        paymentMethod: { brand: 'visa', last4: '4242' },
+      }).order;
+    const newest = { ...make(), orderId: 'TS-2610-2222' };
+    const older = { ...make(), orderId: 'TS-2610-1111' };
+    localStorage.setItem('terrascape_orders_v2', JSON.stringify([newest, older]));
+
+    render(
+      <AllProviders>
+        <TrackerTestHost />
+      </AllProviders>
+    );
+    fireEvent.click(screen.getByText('Open Tracker'));
+
+    const picker = screen.getByLabelText('Order');
+    expect(picker).toHaveValue('TS-2610-2222');
+    fireEvent.change(picker, { target: { value: 'TS-2610-1111' } });
+    expect(screen.getByText('#TS-2610-1111')).toBeInTheDocument();
+    expect(screen.getByLabelText('Order')).toHaveValue('TS-2610-1111');
+  });
 });

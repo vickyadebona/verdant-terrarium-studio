@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Trash2,
@@ -20,8 +20,9 @@ import type { CartItem } from '../types/terrarium';
 import { ACCESSORY_PRODUCTS, ARRIVAL_GUARANTEE_DAYS } from '../catalog';
 import { formatCents, formatCentsExact } from '../catalog/money';
 import { TAX_RATE_LABEL } from '../catalog/delivery';
-import { quoteOrder } from '../utils/stripeCheckoutEngine';
+import { maxQuantityFor, quoteOrder } from '../utils/stripeCheckoutEngine';
 import { DeliveryOptionPicker } from './DeliveryOptionPicker';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 interface CartDrawerProps {
   onLoadCustomBlueprintToStudio?: (item: CartItem) => void;
@@ -59,16 +60,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
     openCheckoutModal();
   };
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        closeCart();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closeCart]);
+  const dialogRef = useDialogFocus(isOpen, closeCart);
 
   if (!isOpen) return null;
 
@@ -98,6 +90,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
       role="dialog"
       aria-modal="true"
       aria-label="Your Jar · Studio Cart"
+      ref={dialogRef}
+      tabIndex={-1}
     >
       {/* Background click listener */}
       <div className="absolute inset-0 cursor-pointer" onClick={closeCart} />
@@ -247,6 +241,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                       onClick={() => updateQuantity(item.id, -1)}
                       className="p-1 rounded hover:bg-[#f0ede3] text-[#546358] hover:text-[#18392b] transition cursor-pointer"
                       title="Decrease quantity"
+                      aria-label="Decrease quantity"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -255,8 +250,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                     </span>
                     <button
                       onClick={() => updateQuantity(item.id, 1)}
-                      className="p-1 rounded hover:bg-[#f0ede3] text-[#546358] hover:text-[#18392b] transition cursor-pointer"
-                      title="Increase quantity"
+                      disabled={item.quantity >= maxQuantityFor(item)}
+                      className="p-1 rounded hover:bg-[#f0ede3] text-[#546358] hover:text-[#18392b] transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      title={
+                        item.quantity >= maxQuantityFor(item)
+                          ? 'Limit of one per order for studio editions'
+                          : 'Increase quantity'
+                      }
+                      aria-label={
+                        item.quantity >= maxQuantityFor(item)
+                          ? 'Increase quantity (limit reached)'
+                          : 'Increase quantity'
+                      }
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>

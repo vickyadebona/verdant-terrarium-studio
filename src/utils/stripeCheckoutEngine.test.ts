@@ -253,3 +253,19 @@ describe('createStripeOrder', () => {
     ).toThrow('Your jar is empty.');
   });
 });
+
+describe('edition quantity limit', () => {
+  it('rejects more editions than EDITION_MAX_QUANTITY allows', () => {
+    const editions: CartItem = {
+      id: 'ed-2',
+      type: 'signature_build',
+      sku: EDITION_PRODUCTS.moss_garden.sku,
+      name: 'Moss Garden',
+      unitPriceCents: 13800,
+      quantity: 2,
+    };
+    const quote = quoteOrder([editions], 'courier');
+    expect(quote.valid).toBe(false);
+    expect(quote.unknownSkus).toEqual([EDITION_PRODUCTS.moss_garden.sku]);
+  });
+});

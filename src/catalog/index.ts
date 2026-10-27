@@ -224,6 +224,8 @@ export const ESTIMATED_TAX_RATE = 0.095;
 
 /** Days after delivery that the Living Arrival Guarantee covers a damaged vessel or plant. */
 export const ARRIVAL_GUARANTEE_DAYS = 30;
+/** Most of one studio edition a customer can order at once. Raise it if editions are made in multiples. */
+export const EDITION_MAX_QUANTITY = 1;
 /** Interest-free payments offered through Klarna / Affirm at checkout. */
 export const INSTALLMENT_COUNT = 4;
 

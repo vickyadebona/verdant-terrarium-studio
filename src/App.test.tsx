@@ -142,3 +142,22 @@ describe('Mobile menu', () => {
     expect(toggle).toHaveFocus();
   });
 });
+
+describe('Not-found page', () => {
+  it('shows for unknown links and keeps the typed URL', () => {
+    window.history.replaceState(null, '', '/editions/not-a-real-edition');
+    render(
+      <AllProviders>
+        <AppWithModals />
+      </AllProviders>
+    );
+
+    expect(screen.getByText('Page not found', { exact: true })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/editions/not-a-real-edition');
+    expect(document.title).toBe('Page not found · TerraScape');
+
+    fireEvent.click(screen.getByRole('button', { name: /Browse the collection/ }));
+    expect(window.location.pathname).toBe('/collections');
+    expect(document.title).not.toBe('Page not found · TerraScape');
+  });
+});

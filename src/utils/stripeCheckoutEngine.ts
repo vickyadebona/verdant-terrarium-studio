@@ -8,6 +8,7 @@ import type {
 } from '../types/terrarium';
 import {
   ASSEMBLY_FEE_CENTS,
+  EDITION_MAX_QUANTITY,
   ESTIMATED_TAX_RATE,
   MAX_ELEMENT_QUANTITY,
   getProduct,
@@ -91,6 +92,11 @@ export function verifiedUnitPriceCents(item: Pick<CartItem, 'type' | 'sku' | 'bl
   return product && product.kind === expectedKind ? product.priceCents : null;
 }
 
+/** Most of one cart line a customer can order. */
+export function maxQuantityFor(item: Pick<CartItem, 'type'>): number {
+  return item.type === 'signature_build' ? EDITION_MAX_QUANTITY : Number.POSITIVE_INFINITY;
+}
+
 /** Assembly fee for every custom build in the jar when the order is planted in the studio. */
 export function assemblyCentsFor(items: CartItem[], option: ShippingOption): number {
   if (!DELIVERY_OPTIONS[option].assembled) return 0;
@@ -112,7 +118,12 @@ export function quoteOrder(items: CartItem[], shippingOption: ShippingOption): O
 
   for (const item of items) {
     const unitPriceCents = verifiedUnitPriceCents(item);
-    if (unitPriceCents === null || !Number.isInteger(item.quantity) || item.quantity < 1) {
+    if (
+      unitPriceCents === null ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1 ||
+      item.quantity > maxQuantityFor(item)
+    ) {
       unknownSkus.push(item.sku);
       continue;
     }

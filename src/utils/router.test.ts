@@ -67,18 +67,25 @@ describe('router utilities', () => {
       });
     });
 
-    it('falls back to cloud_forest for invalid edition keys', () => {
-      expect(parsePath('/editions/non_existent_key')).toEqual({
+    it('accepts hyphenated edition links', () => {
+      expect(parsePath('/editions/fern-study')).toEqual({
         page: 'edition',
-        path: '/editions/cloud_forest',
-        editionId: 'cloud_forest',
+        path: '/editions/fern_study',
+        editionId: 'fern_study',
       });
     });
 
-    it('falls back to collections for unknown paths', () => {
+    it('shows the not-found page for unknown editions', () => {
+      expect(parsePath('/editions/non_existent_key')).toEqual({
+        page: 'notFound',
+        path: '/editions/non_existent_key',
+      });
+    });
+
+    it('shows the not-found page for unknown paths and keeps the URL', () => {
       expect(parsePath('/completely/unknown/page')).toEqual({
-        page: 'home',
-        path: '/collections',
+        page: 'notFound',
+        path: '/completely/unknown/page',
       });
     });
   });

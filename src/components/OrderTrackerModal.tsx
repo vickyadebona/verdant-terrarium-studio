@@ -15,6 +15,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import type { OrderStage } from '../types/terrarium';
 import { formatCentsExact } from '../catalog/money';
 import { QUARANTINE_HOURS, TAX_RATE_LABEL } from '../catalog/delivery';
@@ -60,14 +61,18 @@ const STAGES: StageMeta[] = [
 ];
 
 export const OrderTrackerModal: React.FC = () => {
-  const { isTrackerModalOpen, closeTrackerModal, orders, advanceOrderStage } = useCart();
+  const { isTrackerModalOpen, closeTrackerModal, orders, activeOrder: selectedOrder, openTrackerModal, advanceOrderStage } =
+    useCart();
   const [showRawJson, setShowRawJson] = useState(false);
   const [copiedPayload, setCopiedPayload] = useState(false);
 
+  const dialogRef = useDialogFocus(isTrackerModalOpen, closeTrackerModal);
+
   if (!isTrackerModalOpen) return null;
 
-  // Use the newest order, or empty placeholder if none exists
-  const activeOrder = orders[0] || null;
+  // The order the shopper opened (kept current from the saved list), else the newest one
+  const activeOrder =
+    orders.find((order) => order.orderId === selectedOrder?.orderId) ?? orders[0] ?? null;
 
   if (!activeOrder) {
     return (
@@ -75,6 +80,9 @@ export const OrderTrackerModal: React.FC = () => {
         className="fixed inset-0 z-50 bg-[#18392b]/40 backdrop-blur-sm flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true"
+        aria-label="Workshop Assembly Tracker"
+        ref={dialogRef}
+        tabIndex={-1}
       >
         <div className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl max-w-md w-full p-6 text-center text-[#18392b] shadow-2xl">
           <p className="text-sm text-[#546358] mb-4">No active studio orders found yet.</p>
@@ -114,6 +122,9 @@ export const OrderTrackerModal: React.FC = () => {
       className="fixed inset-0 z-50 bg-[#18392b]/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="tracker-modal-title"
+      ref={dialogRef}
+      tabIndex={-1}
     >
       <div className="bg-[#f8f5ee] border border-[rgba(24,57,43,0.16)] rounded-2xl max-w-3xl w-full max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl text-[#18392b]">
         {/* Modal Header */}
@@ -124,7 +135,7 @@ export const OrderTrackerModal: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-serif font-normal text-[#18392b]">
+                <h2 id="tracker-modal-title" className="text-base sm:text-lg font-serif font-normal text-[#18392b]">
                   Workshop Assembly Tracker
                 </h2>
                 <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[rgba(184,194,161,0.3)] text-[#18392b] border border-[rgba(24,57,43,0.18)]">
@@ -138,6 +149,7 @@ export const OrderTrackerModal: React.FC = () => {
           </div>
           <button
             onClick={closeTrackerModal}
+            aria-label="Close tracker"
             className="p-2 rounded-xl text-[#546358] hover:text-[#18392b] hover:bg-[rgba(24,57,43,0.06)] transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -146,6 +158,29 @@ export const OrderTrackerModal: React.FC = () => {
 
         {/* Modal Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 text-xs sm:text-sm">
+          {orders.length > 1 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="tracker-order-select" className="text-xs font-semibold text-[#546358]">
+                Order
+              </label>
+              <select
+                id="tracker-order-select"
+                value={activeOrder.orderId}
+                onChange={(event) => {
+                  const next = orders.find((order) => order.orderId === event.target.value);
+                  if (next) openTrackerModal(next);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white border border-[rgba(24,57,43,0.18)] text-[#18392b] text-xs font-mono"
+              >
+                {orders.map((order) => (
+                  <option key={order.orderId} value={order.orderId}>
+                    #{order.orderId} ·{' '}
+                    {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {/* Order Banner & Delivery ETA */}
           <div className="bg-[rgba(184,194,161,0.25)] border border-[rgba(24,57,43,0.16)] rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="space-y-1">
