@@ -127,6 +127,25 @@ test.describe('TerraScape smoke suite', () => {
     await expect(jar.getByRole('button', { name: 'Increase quantity (limit reached)' })).toBeDisabled();
   });
 
+  test('the page behind an open dialog does not scroll', async ({ page }) => {
+    await freshStart(page, '/editions/moss_garden', { signedIn: true });
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: /Add to Your Jar/ }).first().click();
+    await expect(page.getByRole('dialog', { name: /Your Jar/ })).toBeVisible();
+    const before = await page.evaluate(() => window.scrollY);
+    // Scroll over the blurred backdrop, left of the jar panel.
+    await page.mouse.move(40, 400);
+    await page.mouse.wheel(0, 800);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+
+    await page.keyboard.press('Escape');
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+  });
+
   test('unknown links show the not-found page with a 404 status', async ({ page }) => {
     const response = await page.goto('/editions/not-a-real-edition');
     expect(response?.status()).toBe(404);

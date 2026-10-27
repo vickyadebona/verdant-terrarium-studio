@@ -65,4 +65,22 @@ describe('dialog focus handling', () => {
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     expect(screen.getByRole('dialog', { name: /Your Jar/ })).toBeInTheDocument();
   });
+
+  it('keeps the page behind still until the last dialog closes', () => {
+    renderHost();
+    const root = document.documentElement;
+    expect(root.style.overflow).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Jar' }));
+    expect(root.style.overflow).toBe('hidden');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Sign In' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(root.style.overflow).toBe('hidden');
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(root.style.overflow).toBe('');
+  });
 });

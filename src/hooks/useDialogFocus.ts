@@ -8,8 +8,28 @@ const FOCUSABLE =
 const openDialogs: symbol[] = [];
 
 /**
+ * Stops the page behind the dialogs from scrolling while any dialog is open. The scrollbar's
+ * width is replaced with padding so the page doesn't shift sideways when it disappears.
+ */
+function lockPageScroll() {
+  const root = document.documentElement;
+  const scrollbarWidth = window.innerWidth - root.clientWidth;
+  root.style.overflow = 'hidden';
+  root.style.overscrollBehavior = 'none';
+  if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+}
+
+function unlockPageScroll() {
+  const root = document.documentElement;
+  root.style.overflow = '';
+  root.style.overscrollBehavior = '';
+  document.body.style.paddingRight = '';
+}
+
+/**
  * Keyboard and focus behaviour for a modal dialog: moves focus into it when it opens,
- * keeps Tab inside it, closes it on Escape, and returns focus to where the shopper was.
+ * keeps Tab inside it, closes it on Escape, and returns focus to where the shopper was. The
+ * page behind stays still until the last open dialog closes.
  * Attach the returned ref to the element with role="dialog" and give it tabIndex={-1}.
  */
 export function useDialogFocus<T extends HTMLElement = HTMLDivElement>(open: boolean, onClose: () => void) {
@@ -22,6 +42,7 @@ export function useDialogFocus<T extends HTMLElement = HTMLDivElement>(open: boo
   useEffect(() => {
     if (!open) return;
     const id = Symbol('dialog');
+    if (openDialogs.length === 0) lockPageScroll();
     openDialogs.push(id);
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     ref.current?.focus();
@@ -65,6 +86,7 @@ export function useDialogFocus<T extends HTMLElement = HTMLDivElement>(open: boo
       window.removeEventListener('keydown', handleKeyDown);
       const index = openDialogs.indexOf(id);
       if (index !== -1) openDialogs.splice(index, 1);
+      if (openDialogs.length === 0) unlockPageScroll();
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, [open]);
