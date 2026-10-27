@@ -31,7 +31,7 @@ async function designSmoothJarWithFern(page: Page) {
   await page.getByRole('checkbox', { name: /Button Fern/ }).click();
   await page.getByRole('button', { name: /04\s*Details/ }).click();
   await page.getByRole('checkbox', { name: /River Stone/ }).click();
-  await page.getByRole('button', { name: /Add to Your Jar/ }).click();
+  await page.getByRole('button', { name: /Add to Greenhouse/ }).click();
 }
 
 const mainNav = (page: Page) => page.getByRole('navigation', { name: 'Main navigation' });
@@ -86,27 +86,27 @@ test.describe('TerraScape smoke suite', () => {
     await expect(page.locator('.faq-question-btn[aria-expanded="true"]')).toHaveCount(0);
   });
 
-  test('a guest designs, signs up, and the design lands in the jar once', async ({ page }) => {
+  test('a guest designs, signs up, and the design lands in the greenhouse once', async ({ page }) => {
     await freshStart(page, '/studio');
-    await expect(page.getByRole('button', { name: /Your Jar/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Greenhouse/ })).toHaveCount(0);
 
     await designSmoothJarWithFern(page);
-    const signIn = page.getByRole('dialog', { name: 'Sign in to save it to your jar' });
+    const signIn = page.getByRole('dialog', { name: 'Sign in to save it to your greenhouse' });
     await signIn.getByLabel('Full Name').fill('E2E Guest');
     await signIn.getByLabel('Email Address').fill(uniqueEmail('guest'));
     await signIn.getByLabel('Password').fill('e2e-test-password');
-    await signIn.getByRole('button', { name: /Create Account & Add to Your Jar/ }).click();
+    await signIn.getByRole('button', { name: /Create Account & Add to Greenhouse/ }).click();
 
-    const jar = page.getByRole('dialog', { name: /Your Jar/ });
+    const jar = page.getByRole('dialog', { name: /Your Greenhouse/ });
     await expect(jar.getByText('Custom Tall Apothecary Jar · Smooth Lid')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: /Your Jar\s*1/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Greenhouse\s*1/ })).toBeVisible();
   });
 
-  test('a Studio design goes into the jar at catalog prices', async ({ page }) => {
+  test('a Studio design goes into the greenhouse at catalog prices', async ({ page }) => {
     await freshStart(page, '/studio', { signedIn: true });
     await designSmoothJarWithFern(page);
 
-    const jar = page.getByRole('dialog', { name: /Your Jar/ });
+    const jar = page.getByRole('dialog', { name: /Your Greenhouse/ });
     await expect(jar).toBeVisible();
     // $135 design + $25 studio assembly + $18 courier + $16.91 tax
     await expect(jar.getByText('$194.91 USD')).toBeVisible();
@@ -121,9 +121,9 @@ test.describe('TerraScape smoke suite', () => {
 
   test('studio editions are limited to one per order', async ({ page }) => {
     await freshStart(page, '/editions/moss_garden', { signedIn: true });
-    await page.getByRole('button', { name: /Add to Your Jar/ }).first().click();
+    await page.getByRole('button', { name: /Add to Greenhouse/ }).first().click();
 
-    const jar = page.getByRole('dialog', { name: /Your Jar/ });
+    const jar = page.getByRole('dialog', { name: /Your Greenhouse/ });
     await expect(jar.getByRole('button', { name: 'Increase quantity (limit reached)' })).toBeDisabled();
   });
 
@@ -132,10 +132,10 @@ test.describe('TerraScape smoke suite', () => {
     await page.mouse.wheel(0, 400);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
-    await page.getByRole('button', { name: /Add to Your Jar/ }).first().click();
-    await expect(page.getByRole('dialog', { name: /Your Jar/ })).toBeVisible();
+    await page.getByRole('button', { name: /Add to Greenhouse/ }).first().click();
+    await expect(page.getByRole('dialog', { name: /Your Greenhouse/ })).toBeVisible();
     const before = await page.evaluate(() => window.scrollY);
-    // Scroll over the blurred backdrop, left of the jar panel.
+    // Scroll over the blurred backdrop, left of the greenhouse panel.
     await page.mouse.move(40, 400);
     await page.mouse.wheel(0, 800);
     await page.waitForTimeout(300);

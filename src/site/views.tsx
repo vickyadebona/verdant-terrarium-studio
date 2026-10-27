@@ -26,12 +26,13 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import type { User as UserProfile } from "../types/auth";
 import { furthestReachableStep, isStudioStepComplete } from "../catalog/studioBlueprint";
+import { greenhouseCountLabel } from "../utils/greenhouse";
 import { EditionDetailPage } from "../components/EditionDetailPage";
 import type { Page, EditionKey } from "../utils/router";
 import { STUDIO_EDITIONS, images, type StudioEdition } from "../catalog/editions";
 import { useStudio } from "./StudioContext";
 import { useAppNavigate } from "./navigation";
-import { ADD_TO_JAR_PROMPT, useSignedInAction } from "./useSignedInAction";
+import { ADD_TO_GREENHOUSE_PROMPT, useSignedInAction } from "./useSignedInAction";
 
 type Category = StudioCategory;
 type Option = StudioOption;
@@ -253,7 +254,7 @@ function Builder({
   setSoilLayers,
   totalElements,
   subtotalCents,
-  onAddToJar,
+  onAddToGreenhouse,
   allowMultiQuantityFlora: controlledAllowMultiQuantityFlora,
 }: {
   activeCategory: Category;
@@ -265,8 +266,8 @@ function Builder({
   setSoilLayers: (layers: SoilLayerSpec[]) => void;
   totalElements: number;
   subtotalCents: number;
-  /** Adds the design to the jar; returns the required steps that are still empty. */
-  onAddToJar: () => Category[];
+  /** Adds the design to the greenhouse; returns the required steps that are still empty. */
+  onAddToGreenhouse: () => Category[];
   allowMultiQuantityFlora?: boolean;
 }) {
   const [soilDrawerOpen, setSoilDrawerOpen] = useState(false);
@@ -282,8 +283,8 @@ function Builder({
   // No soil in the preview until a foundation is chosen: the Studio starts as an empty jar.
   const hasFoundation = selected.some((id) => getStudioOption(id)?.category === "Foundation");
 
-  const handleAddToJar = () => {
-    setTriedToAdd(onAddToJar().length > 0);
+  const handleAddToGreenhouse = () => {
+    setTriedToAdd(onAddToGreenhouse().length > 0);
   };
   // Feature toggle: By default FALSE (multi-select flora with NO duplicate quantities).
   // Can be toggled on/off internally or passed via prop.
@@ -549,7 +550,7 @@ function Builder({
           <div className="builder-missing" role="alert">
             <p>
               Choose {listPhrases(missingSteps.map((category) => STEP_REQUIREMENT[category]))} before
-              adding your design to the jar.
+              adding your design to your greenhouse.
             </p>
             <div className="builder-missing-actions">
               {missingSteps.map((category) => (
@@ -569,9 +570,9 @@ function Builder({
         {step === categories.length && (
           <p className="builder-assembly-note">
             Courier and pickup orders are planted and assembled in our Los Angeles studio
-            (+{formatCents(ASSEMBLY_FEE_CENTS)} per build). Choose nationwide shipping in your jar to
+            (+{formatCents(ASSEMBLY_FEE_CENTS)} per build). Choose nationwide shipping in your greenhouse to
             receive it as a DIY kit instead.
-            {!isAuthenticated && " You'll sign in or create a free account to save your design to your jar."}
+            {!isAuthenticated && " You'll sign in or create a free account to save your design to your greenhouse."}
           </p>
         )}
 
@@ -592,18 +593,18 @@ function Builder({
           ) : (
             <button
               className="primary-button"
-              onClick={handleAddToJar}
+              onClick={handleAddToGreenhouse}
               disabled={!currentStepComplete}
               aria-describedby={currentStepComplete ? undefined : "builder-step-hint"}
             >
-              Add to Your Jar <ArrowIcon />
+              Add to Greenhouse <ArrowIcon />
             </button>
           )}
         </div>
         <p id="builder-step-hint" className="builder-step-hint" aria-live="polite">
           {currentStepComplete
             ? ""
-            : `Choose ${STEP_REQUIREMENT[activeCategory]} to ${step < categories.length ? "continue" : "add your design to the jar"}.`}
+            : `Choose ${STEP_REQUIREMENT[activeCategory]} to ${step < categories.length ? "continue" : "add your design to your greenhouse"}.`}
         </p>
       </div>
     </section>
@@ -1175,7 +1176,7 @@ function Account({
   onLogin?: (user: UserProfile) => void;
   onLogout: () => void;
 }) {
-  const { openCart, itemCount, openTrackerModal, orders } = useCart();
+  const { openCart, items, itemCount, openTrackerModal, orders } = useCart();
   const { signIn, isLoading, googleSignInEnabled } = useAuth();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -1250,8 +1251,8 @@ function Account({
                 </strong>
               </div>
               <div className="account-profile-row">
-                <span>Items in Your Jar</span>
-                <strong>{itemCount} build(s)</strong>
+                <span>In Your Greenhouse</span>
+                <strong>{greenhouseCountLabel(items)}</strong>
               </div>
               {orders.length > 0 && (
                 <div className="account-profile-row">
@@ -1269,7 +1270,7 @@ function Account({
                   onClick={openCart}
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
                 >
-                  Open Your Jar ({itemCount}) <ArrowIcon />
+                  Open Your Greenhouse ({itemCount}) <ArrowIcon />
                 </button>
               ) : (
                 <button
@@ -1339,8 +1340,8 @@ function Account({
           <h1>{mode === "signup" ? "Grow with us." : "Welcome back."}</h1>
           <p>
             {mode === "signup"
-              ? "Create an account to access Your Jar, save custom terrarium blueprints, and track living workshop orders."
-              : "Sign in to access Your Jar, view your saved terrarium designs, and track your builds."}
+              ? "Create an account to access Your Greenhouse, save custom terrarium blueprints, and track living workshop orders."
+              : "Sign in to access Your Greenhouse, view your saved terrarium designs, and track your builds."}
           </p>
 
           {/* Shown once Google sign-in is configured for this environment. */}
@@ -1488,7 +1489,7 @@ export function StudioView() {
       setSoilLayers={studio.setSoilLayers}
       totalElements={studio.totalElements}
       subtotalCents={studio.subtotalCents}
-      onAddToJar={studio.addStudioDesignToJar}
+      onAddToGreenhouse={studio.addStudioDesignToGreenhouse}
     />
   );
 }
@@ -1518,7 +1519,7 @@ export function EditionView({ id }: { id: EditionKey }) {
   const runSignedIn = useSignedInAction();
 
   // Adding to the jar needs an account; guests are asked to sign in first.
-  const addEditionToJar = (edition: StudioEdition) => {
+  const addEditionToGreenhouse = (edition: StudioEdition) => {
     runSignedIn(
       () =>
         addStandardItem({
@@ -1527,7 +1528,7 @@ export function EditionView({ id }: { id: EditionKey }) {
           sku: edition.sku,
           description: `${edition.vessel} · Includes live flora, stratified substrates & integrated smart lid`,
         }),
-      ADD_TO_JAR_PROMPT
+      ADD_TO_GREENHOUSE_PROMPT
     );
   };
 
@@ -1536,7 +1537,7 @@ export function EditionView({ id }: { id: EditionKey }) {
       edition={STUDIO_EDITIONS[id]}
       navigate={navigate}
       loadSignaturePreset={loadSignaturePreset}
-      addEditionToJar={addEditionToJar}
+      addEditionToGreenhouse={addEditionToGreenhouse}
     />
   );
 }

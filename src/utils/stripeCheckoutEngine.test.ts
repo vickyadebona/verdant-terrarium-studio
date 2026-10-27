@@ -255,7 +255,7 @@ describe('createStripeOrder', () => {
         shipping,
         paymentMethod: { brand: 'visa', last4: '4242' },
       })
-    ).toThrow('Your jar is empty.');
+    ).toThrow('Your greenhouse is empty.');
   });
 });
 

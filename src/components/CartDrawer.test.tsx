@@ -44,7 +44,7 @@ describe('CartDrawer Component', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('renders empty jar state when opened with 0 items', () => {
+  it('renders the empty greenhouse when opened with 0 items', () => {
     render(
       <AllProviders>
         <CartTestHost />
@@ -54,7 +54,7 @@ describe('CartDrawer Component', () => {
     fireEvent.click(screen.getByText('Open Cart Drawer'));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText(/Your jar is currently empty/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your greenhouse is empty/i)).toBeInTheDocument();
   });
 
   it('renders added items with price and details', () => {
@@ -105,7 +105,7 @@ describe('CartDrawer Component', () => {
     fireEvent.click(removeBtn);
 
     expect(screen.queryByText('Submersible Warm Copper Micro-LEDs')).not.toBeInTheDocument();
-    expect(screen.getByText(/Your jar is currently empty/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your greenhouse is empty/i)).toBeInTheDocument();
   });
 
   it('closes cart on Escape key press', () => {
@@ -157,8 +157,8 @@ describe('CartDrawer Component', () => {
   });
 });
 
-describe('Jar across browser tabs', () => {
-  it('empties when another tab empties it, and does not write the old jar back', async () => {
+describe('Greenhouse across browser tabs', () => {
+  it('empties when another tab empties it, and does not write the old greenhouse back', async () => {
     render(
       <AllProviders>
         <CartTestHost />
@@ -167,13 +167,13 @@ describe('Jar across browser tabs', () => {
     fireEvent.click(screen.getByText('Add Test Item'));
     expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toHaveLength(1);
 
-    // Another tab checks out: it empties the saved jar and the browser tells this tab.
+    // Another tab checks out: it empties the saved greenhouse and the browser tells this tab.
     act(() => {
       localStorage.setItem('terrascape_cart_v2', '[]');
       window.dispatchEvent(new StorageEvent('storage', { key: 'terrascape_cart_v2', storageArea: localStorage }));
     });
 
-    expect(screen.getByRole('dialog')).toHaveTextContent(/Your jar is currently empty/i);
+    expect(screen.getByRole('dialog')).toHaveTextContent(/Your greenhouse is empty/i);
     expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toEqual([]);
   });
 });

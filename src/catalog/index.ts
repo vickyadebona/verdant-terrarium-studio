@@ -26,8 +26,8 @@ export const SINGLE_CHOICE_CATEGORIES: StudioCategory[] = ['Vessel', 'Foundation
 
 /**
  * Studio steps that need at least one selection before the shopper can continue to the next
- * step or add the design to the jar. Details is optional. Add or remove a step here to change
- * the rule everywhere (Studio buttons, the jar check and the "From" price).
+ * step or add the design to the greenhouse. Details is optional. Add or remove a step here to change
+ * the rule everywhere (Studio buttons, the greenhouse check and the "From" price).
  */
 export const STUDIO_REQUIRED_CATEGORIES: StudioCategory[] = ['Vessel', 'Foundation', 'Flora'];
 

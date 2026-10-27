@@ -31,9 +31,9 @@ export function useSignedInAction() {
   };
 }
 
-export const ADD_TO_JAR_PROMPT = {
-  title: "Sign in to save it to your jar",
+export const ADD_TO_GREENHOUSE_PROMPT = {
+  title: "Sign in to save it to your greenhouse",
   message:
-    "Your jar keeps your designs and editions together until checkout. Create a free account or sign in, and we'll add this right away.",
-  actionLabel: "Add to Your Jar",
+    "Your greenhouse keeps your jars together until checkout. Create a free account or sign in, and we'll add this right away.",
+  actionLabel: "Add to Greenhouse",
 } satisfies Prompt;

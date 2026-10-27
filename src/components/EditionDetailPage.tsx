@@ -7,7 +7,7 @@ interface EditionDetailPageProps {
   edition: StudioEdition;
   navigate: (page: Page | string) => void;
   loadSignaturePreset: (key: EditionKey) => void;
-  addEditionToJar: (edition: StudioEdition) => void;
+  addEditionToGreenhouse: (edition: StudioEdition) => void;
 }
 
 function ArrowIcon() {
@@ -30,7 +30,7 @@ export function EditionDetailPage({
   edition,
   navigate,
   loadSignaturePreset,
-  addEditionToJar,
+  addEditionToGreenhouse,
 }: EditionDetailPageProps) {
   return (
     <div className="edition-page">
@@ -100,11 +100,11 @@ export function EditionDetailPage({
             <button
               type="button"
               className="primary-button"
-              onClick={() => addEditionToJar(edition)}
+              onClick={() => addEditionToGreenhouse(edition)}
               style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem" }}
             >
               <JarIcon />
-              Add to Your Jar — {formatCents(edition.priceCents)}
+              Add to Greenhouse — {formatCents(edition.priceCents)}
             </button>
             <button
               type="button"
@@ -349,11 +349,11 @@ export function EditionDetailPage({
           <button
             type="button"
             className="light-button"
-            onClick={() => addEditionToJar(edition)}
+            onClick={() => addEditionToGreenhouse(edition)}
             style={{ display: "inline-flex", alignItems: "center", gap: "0.6rem" }}
           >
             <JarIcon />
-            Add to Your Jar — {formatCents(edition.priceCents)}
+            Add to Greenhouse — {formatCents(edition.priceCents)}
           </button>
           <button
             type="button"

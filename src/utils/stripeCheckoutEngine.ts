@@ -48,7 +48,7 @@ export interface OrderQuote {
   /** True when a client-side price disagreed with the catalog. */
   tamperDetected: boolean;
   unknownSkus: string[];
-  /** Catalog prices of the jar's items. */
+  /** Catalog prices of the greenhouse's items. */
   subtotalCents: number;
   /** Studio assembly for custom builds; zero when the order ships as DIY kits. */
   assemblyCents: number;
@@ -97,7 +97,7 @@ export function maxQuantityFor(item: Pick<CartItem, 'type'>): number {
   return item.type === 'signature_build' ? EDITION_MAX_QUANTITY : Number.POSITIVE_INFINITY;
 }
 
-/** Assembly fee for every custom build in the jar when the order is planted in the studio. */
+/** Assembly fee for every custom build in the greenhouse when the order is planted in the studio. */
 export function assemblyCentsFor(items: CartItem[], option: ShippingOption): number {
   if (!DELIVERY_OPTIONS[option].assembled) return 0;
   const builds = items
@@ -180,7 +180,7 @@ export function createStripeOrder(params: {
   if (!quote.valid) {
     throw new Error(
       params.items.length === 0
-        ? 'Your jar is empty.'
+        ? 'Your greenhouse is empty.'
         : `These items are no longer available: ${quote.unknownSkus.join(', ')}`
     );
   }

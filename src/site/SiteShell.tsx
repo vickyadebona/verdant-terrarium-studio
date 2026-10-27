@@ -18,7 +18,7 @@ const NAV_LINKS: Array<{ href: string; label: string; activeFor: string[] }> = [
 // The Studio and account pages are full-height tools without the marketing footer.
 const PAGES_WITHOUT_FOOTER = ["/studio", "/account"];
 
-/** Site header (logo, main navigation, account and jar actions, mobile menu) and footer. */
+/** Site header (logo, main navigation, account and greenhouse actions, mobile menu) and footer. */
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user: currentUser } = useAuth();
@@ -110,10 +110,10 @@ export function SiteShell({ children }: { children: ReactNode }) {
             </Link>
           )}
 
-          {/* The jar belongs to an account, so only signed-in shoppers see it. */}
+          {/* The greenhouse belongs to an account, so only signed-in shoppers see it. */}
           {currentUser && (
-            <button className="bag-button" onClick={openCart} title="Open Your Jar">
-              Your Jar <span>{itemCount}</span>
+            <button className="bag-button" onClick={openCart} title="Open Your Greenhouse">
+              Greenhouse <span>{itemCount}</span>
             </button>
           )}
 

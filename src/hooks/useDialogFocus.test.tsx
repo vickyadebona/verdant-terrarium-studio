@@ -11,7 +11,7 @@ function DialogsHost() {
   const { openAuthModal } = useAuth();
   return (
     <div>
-      <button onClick={openCart}>Open Jar</button>
+      <button onClick={openCart}>Open Greenhouse</button>
       <button onClick={() => openAuthModal()}>Open Sign In</button>
       <CartDrawer />
       <AuthModal />
@@ -28,24 +28,24 @@ function renderHost() {
 }
 
 describe('dialog focus handling', () => {
-  it('moves focus into the jar and back to the opener when it closes', () => {
+  it('moves focus into the greenhouse and back to the opener when it closes', () => {
     renderHost();
-    const opener = screen.getByRole('button', { name: 'Open Jar' });
+    const opener = screen.getByRole('button', { name: 'Open Greenhouse' });
     opener.focus();
     fireEvent.click(opener);
 
-    const jar = screen.getByRole('dialog', { name: /Your Jar/ });
+    const jar = screen.getByRole('dialog', { name: /Your Greenhouse/ });
     expect(jar).toHaveFocus();
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: /Your Jar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Your Greenhouse/ })).not.toBeInTheDocument();
     expect(opener).toHaveFocus();
   });
 
   it('keeps Tab inside the open dialog', () => {
     renderHost();
-    fireEvent.click(screen.getByRole('button', { name: 'Open Jar' }));
-    const jar = screen.getByRole('dialog', { name: /Your Jar/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Open Greenhouse' }));
+    const jar = screen.getByRole('dialog', { name: /Your Greenhouse/ });
     const buttons = jar.querySelectorAll<HTMLElement>('button');
     const last = buttons[buttons.length - 1];
 
@@ -57,13 +57,13 @@ describe('dialog focus handling', () => {
 
   it('closes only the top dialog on Escape', () => {
     renderHost();
-    fireEvent.click(screen.getByRole('button', { name: 'Open Jar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Greenhouse' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open Sign In' }));
     expect(screen.getAllByRole('dialog')).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
-    expect(screen.getByRole('dialog', { name: /Your Jar/ })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /Your Greenhouse/ })).toBeInTheDocument();
   });
 
   it('keeps the page behind still until the last dialog closes', () => {
@@ -71,7 +71,7 @@ describe('dialog focus handling', () => {
     const root = document.documentElement;
     expect(root.style.overflow).toBe('');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Jar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Greenhouse' }));
     expect(root.style.overflow).toBe('hidden');
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Sign In' }));

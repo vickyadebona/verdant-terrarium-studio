@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { greenhouseCountLabel } from '../utils/greenhouse';
 import type { CartItem } from '../types/terrarium';
 import { ACCESSORY_PRODUCTS, ARRIVAL_GUARANTEE_DAYS } from '../catalog';
 import { formatCents, formatCentsExact } from '../catalog/money';
@@ -37,7 +38,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
     updateQuantity,
     shippingOption,
     setShippingOption,
-    itemCount,
     openCheckoutModal,
     addStandardItem,
   } = useCart();
@@ -89,7 +89,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
       className="fixed inset-0 z-50 overflow-hidden bg-[#18392b]/40 backdrop-blur-sm flex justify-end transition-opacity"
       role="dialog"
       aria-modal="true"
-      aria-label="Your Jar · Studio Cart"
+      aria-label="Your Greenhouse"
       ref={dialogRef}
       tabIndex={-1}
     >
@@ -106,13 +106,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
             </div>
             <div>
               <h2 className="text-xl font-normal font-serif text-[#18392b] flex items-center gap-2.5">
-                Your Jar
+                Your Greenhouse
                 <span className="px-2.5 py-0.5 rounded-full bg-[rgba(184,194,161,0.3)] text-[#18392b] text-xs border border-[rgba(24,57,43,0.18)] font-sans font-semibold">
-                  {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                  {greenhouseCountLabel(items)}
                 </span>
               </h2>
               <p className="text-xs text-[#546358] mt-0.5">
-                Custom terrarium compositions &amp; integrated climate vessels
+                Your jars and accessories, held until checkout
               </p>
             </div>
           </div>
@@ -133,7 +133,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                 <ShoppingBag className="w-7 h-7" />
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-2xl font-normal font-serif text-[#18392b]">Your jar is currently empty</h3>
+                <h3 className="text-2xl font-normal font-serif text-[#18392b]">Your greenhouse is empty</h3>
                 <p className="text-xs text-[#546358] max-w-sm mx-auto leading-relaxed">
                   Design a miniature living world in our Studio, or begin with one of our curated studio editions.
                 </p>
@@ -346,7 +346,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
           <div className="p-5 border-t border-[rgba(24,57,43,0.14)] bg-[#f0ede3] space-y-3.5 shrink-0">
             <div className="space-y-1.5 text-xs text-[#546358]">
               <div className="flex justify-between">
-                <span>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
+                <span>Subtotal ({greenhouseCountLabel(items)})</span>
                 <span className="font-sans text-[#18392b] font-bold">
                   {formatCentsExact(estimate.subtotalCents)}
                 </span>

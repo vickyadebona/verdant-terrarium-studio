@@ -15,7 +15,7 @@ import { SIGNATURE_PRESETS } from "../catalog/editions";
 import { buildStudioBlueprint, furthestReachableStep } from "../catalog/studioBlueprint";
 import { useCart } from "../context/CartContext";
 import { useAppNavigate } from "./navigation";
-import { ADD_TO_JAR_PROMPT, useSignedInAction } from "./useSignedInAction";
+import { ADD_TO_GREENHOUSE_PROMPT, useSignedInAction } from "./useSignedInAction";
 
 const BUILDER_SELECTED_STORAGE = "terrascape_builder_selected_v1";
 const BUILDER_SOIL_STORAGE = "terrascape_builder_soil_v1";
@@ -35,15 +35,15 @@ interface StudioContextValue {
   subtotalCents: number;
   toggleOption: (option: StudioOption) => void;
   adjustOptionQuantity: (option: StudioOption, delta: number) => void;
-  /** Starts a fresh design: smooth lid, empty jar, step 01. */
+  /** Starts a fresh design: smooth lid, nothing planted, step 01. */
   resetStudio: () => void;
   /** Loads an edition's recipe into the Studio and opens it. */
   loadSignaturePreset: (presetKey: string) => void;
   /**
-   * Adds the current design to the jar, asking guests to sign in first. Returns the steps
+   * Adds the current design to the greenhouse, asking guests to sign in first. Returns the steps
    * still missing, if any (nothing is added then).
    */
-  addStudioDesignToJar: () => StudioCategory[];
+  addStudioDesignToGreenhouse: () => StudioCategory[];
 }
 
 const StudioContext = createContext<StudioContextValue | undefined>(undefined);
@@ -175,11 +175,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     navigate("/studio");
   };
 
-  const addStudioDesignToJar = (): StudioCategory[] => {
+  const addStudioDesignToGreenhouse = (): StudioCategory[] => {
     const result = buildStudioBlueprint(selected, soilLayers);
     if (!result.ok) return result.missing;
     // Guests design freely; saving to the jar needs an account.
-    runSignedIn(() => addCustomBlueprint(result.blueprint), ADD_TO_JAR_PROMPT);
+    runSignedIn(() => addCustomBlueprint(result.blueprint), ADD_TO_GREENHOUSE_PROMPT);
     return [];
   };
 
@@ -198,7 +198,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         adjustOptionQuantity,
         resetStudio,
         loadSignaturePreset,
-        addStudioDesignToJar,
+        addStudioDesignToGreenhouse,
       }}
     >
       {children}

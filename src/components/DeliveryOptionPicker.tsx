@@ -15,7 +15,7 @@ interface DeliveryOptionPickerProps {
   value: ShippingOption;
   onChange: (option: ShippingOption) => void;
   subtotalCents: number;
-  /** Number of custom Studio builds in the jar, for the assembly fee note. */
+  /** Number of custom Studio builds in the greenhouse, for the assembly fee note. */
   customBuildCount: number;
 }
 

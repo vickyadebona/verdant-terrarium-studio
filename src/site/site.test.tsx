@@ -6,7 +6,7 @@ function renderStudio() {
   return renderSiteAt('/studio');
 }
 
-describe('Studio → Your Jar', () => {
+describe('Studio → Your Greenhouse', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -43,12 +43,12 @@ describe('Studio → Your Jar', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Button Fern/ }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
-    // Details are optional: the design can go to the jar with none chosen.
-    expect(screen.getByRole('button', { name: /Add to Your Jar/ })).toBeEnabled();
+    // Details are optional: the design can go to the greenhouse with none chosen.
+    expect(screen.getByRole('button', { name: /Add to Greenhouse/ })).toBeEnabled();
     expect(screen.queryByText(/Choose at least one detail/)).not.toBeInTheDocument();
   });
 
-  it('adds a design with no details to the jar', async () => {
+  it('adds a design with no details to the greenhouse', async () => {
     signInAsTestUser();
     renderStudio();
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
@@ -56,9 +56,9 @@ describe('Studio → Your Jar', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Button Fern/ }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Add to Your Jar/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add to Greenhouse/ }));
 
-    const jar = await screen.findByRole('dialog', { name: /Your Jar/ });
+    const jar = await screen.findByRole('dialog', { name: /Your Greenhouse/ });
     // $84 jar + $22 foundation + $18 fern
     expect(within(jar).getByText('$124')).toBeInTheDocument();
     expect(within(jar).getByText('Pacific Forest Floor · 1 plant · 0 details')).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe('Studio → Your Jar', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Button Fern/ }));
     fireEvent.click(screen.getByRole('button', { name: /04\s*Details/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /River Stone/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Add to Your Jar/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add to Greenhouse/ }));
   }
 
   function expectDesignInJar(jar: HTMLElement) {
@@ -90,14 +90,14 @@ describe('Studio → Your Jar', () => {
     expect(within(jar).getByRole('radio', { name: /Studio courier/ })).toBeChecked();
   }
 
-  it('lets guests design but asks them to sign in before adding to the jar', () => {
+  it('lets guests design but asks them to sign in before adding to the greenhouse', () => {
     renderStudio();
-    expect(screen.queryByRole('button', { name: /Your Jar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Greenhouse/ })).not.toBeInTheDocument();
 
     designAndAdd();
 
-    expect(screen.getByRole('dialog', { name: 'Sign in to save it to your jar' })).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: /Your Jar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Sign in to save it to your greenhouse' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Your Greenhouse/ })).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toEqual([]);
   });
 
@@ -105,15 +105,15 @@ describe('Studio → Your Jar', () => {
     renderStudio();
     designAndAdd();
 
-    const signIn = screen.getByRole('dialog', { name: 'Sign in to save it to your jar' });
+    const signIn = screen.getByRole('dialog', { name: 'Sign in to save it to your greenhouse' });
     fireEvent.change(within(signIn).getByLabelText('Full Name'), { target: { value: 'New Collector' } });
     fireEvent.change(within(signIn).getByLabelText('Email Address'), { target: { value: 'new@example.test' } });
     fireEvent.change(within(signIn).getByLabelText('Password'), { target: { value: 'test-password-1' } });
-    fireEvent.click(within(signIn).getByRole('button', { name: /Create Account & Add to Your Jar/ }));
+    fireEvent.click(within(signIn).getByRole('button', { name: /Create Account & Add to Greenhouse/ }));
 
-    const jar = await screen.findByRole('dialog', { name: /Your Jar/ }, { timeout: 2000 });
+    const jar = await screen.findByRole('dialog', { name: /Your Greenhouse/ }, { timeout: 2000 });
     expectDesignInJar(jar);
-    expect(screen.getByRole('button', { name: /Your Jar\s*1/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Greenhouse\s*1/ })).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toHaveLength(1);
 
     // Shipping nationwide turns the build into a DIY kit and drops the assembly line.
@@ -122,13 +122,13 @@ describe('Studio → Your Jar', () => {
     expect(within(jar).getByText('Pacific Forest Floor · 1 plant · 1 detail')).toBeInTheDocument();
   });
 
-  it('adds straight to the jar for signed-in shoppers', async () => {
+  it('adds straight to the greenhouse for signed-in shoppers', async () => {
     signInAsTestUser();
     renderStudio();
     designAndAdd();
 
-    expect(screen.queryByRole('dialog', { name: 'Sign in to save it to your jar' })).not.toBeInTheDocument();
-    expectDesignInJar(await screen.findByRole('dialog', { name: /Your Jar/ }));
+    expect(screen.queryByRole('dialog', { name: 'Sign in to save it to your greenhouse' })).not.toBeInTheDocument();
+    expectDesignInJar(await screen.findByRole('dialog', { name: /Your Greenhouse/ }));
   });
 });
 
@@ -218,7 +218,7 @@ describe('Not-found page', () => {
 });
 
 describe('After an order goes through', () => {
-  it('empties the jar and starts the Studio over', async () => {
+  it('empties the greenhouse and starts the Studio over', async () => {
     signInAsTestUser();
     renderSiteAt('/studio');
 
@@ -227,9 +227,9 @@ describe('After an order goes through', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Button Fern/ }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Add to Your Jar/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Add to Greenhouse/ }));
 
-    const jar = await screen.findByRole('dialog', { name: /Your Jar/ });
+    const jar = await screen.findByRole('dialog', { name: /Your Greenhouse/ });
     fireEvent.click(within(jar).getByText('Proceed to Stripe Checkout'));
     const checkout = await screen.findByRole('dialog', { name: /Stripe Embedded Checkout/ });
     fireEvent.click(within(checkout).getByRole('radio', { name: /Studio pickup/ }));
@@ -238,8 +238,8 @@ describe('After an order goes through', () => {
 
     expect(await screen.findByRole('dialog', { name: /Workshop Assembly Tracker/ }, { timeout: 5000 })).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('terrascape_cart_v2') ?? '[]')).toEqual([]);
-    expect(screen.getByRole('button', { name: /Your Jar\s*0/ })).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: /Your Jar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Greenhouse\s*0/ })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Your Greenhouse/ })).not.toBeInTheDocument();
 
     // The Studio is back to a fresh design: step 01 with only the smooth lid chosen.
     expect(screen.getByRole('heading', { name: 'Choose your vessel.' })).toBeInTheDocument();

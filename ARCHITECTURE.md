@@ -15,6 +15,11 @@ The application guides customers through a curated 4-step wizard (**01 Vessel & 
 
 ---
 
+## Terminology
+- **Jar:** one terrarium, either a custom Studio build or an edition.
+- **Greenhouse:** the shopper's cart. It holds one or more jars, plus any accessories, until checkout. The code still calls it the cart (`CartContext`, `CartDrawer`).
+- **Order:** what a checkout creates from the greenhouse; it can contain several jars.
+
 ## 2. Directory & File Structure
 
 The site runs on **Next.js 16 (App Router)**. Every URL is a folder under `src/app/`; the page code lives in `src/site/views.tsx` and the shared state in providers.
@@ -33,7 +38,7 @@ src/
 │   └── editions/[id]/page.tsx         # The three studio editions, prerendered; per-edition title and share image
 ├── site/
 │   ├── views.tsx                      # Page components (Collection, Studio builder, Our Story, TerraCare, FAQ, Account, not-found) and the route views
-│   ├── SiteShell.tsx                  # Header (nav, account/jar actions, mobile menu) and footer
+│   ├── SiteShell.tsx                  # Header (nav, account/greenhouse actions, mobile menu) and footer
 │   ├── StudioContext.tsx              # The Studio design in progress (selections, soil layers, step), kept in sessionStorage
 │   └── navigation.ts                  # useAppNavigate(): page names and aliases → canonical URLs via the Next.js router
 ├── server/                            # Server-only code (never sent to the browser)
@@ -59,6 +64,7 @@ src/
 │   └── useDialogFocus.ts              # Focus, Tab and Escape handling for the dialogs
 ├── utils/
 │   ├── router.ts                      # Page names and URL aliases → canonical paths (used by useAppNavigate)
+│   ├── greenhouse.ts                  # greenhouseCountLabel(): "2 jars · 1 accessory"
 │   ├── stripeCheckoutEngine.ts        # Authoritative pricing validator & 5-stage order simulator
 │   └── soundEffects.ts                # Zero-asset Web Audio API procedural synthesizer
 ├── context/
@@ -149,13 +155,13 @@ Browser-only state (cart, orders, Studio design) starts empty on the server and 
 - These tools render only when `process.env.NODE_ENV !== "production"`. Next.js replaces that with a constant at build time, so they are removed from production bundles entirely (`import.meta.env.DEV` only hides them at runtime: it still ships the code):
   - **Auto-fill Stripe 4242 Test Card** in the checkout modal
   - **Simulate Next Stage** in the order tracker
-  - the raw order and blueprint JSON (tracker) and blueprint JSON (jar), for our team until the /admin page exists
+  - the raw order and blueprint JSON (tracker) and blueprint JSON (greenhouse), for our team until the /admin page exists
 - Browsers that still hold the prototype's localStorage accounts or session have them removed on load.
 
 ### H. Accounts & Sign-in (Better Auth)
 - Accounts, sessions and sign-in methods live in Postgres (`user`, `session`, `account`, `verification`, `rateLimit`). Passwords are hashed by Better Auth; the browser holds only an HTTP-only session cookie.
 - `useAuth()` keeps the same interface for the pages. `useSignedInAction()` waits for the session check after a page load, so signed-in shoppers aren't asked to sign in again.
-- **Google** appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set for the environment. It leaves the site and returns to the same page, so an "Add to Your Jar" that prompted the sign-in has to be clicked again (the Studio design is kept).
+- **Google** appears only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set for the environment. It leaves the site and returns to the same page, so an "Add to Greenhouse" that prompted the sign-in has to be clicked again (the Studio design is kept).
 - `role` (CUSTOMER, STUDIO, ADMIN) can't be set at sign-up; our team's accounts are promoted in the database.
 - Requests are accepted only from our own hosts (`terrascape-*.vercel.app`, localhost); repeated attempts are rate-limited in production.
 - Env: `BETTER_AUTH_SECRET` (different per environment, required on Vercel), optional `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. See `.env.example`.

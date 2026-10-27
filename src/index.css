@@ -2237,7 +2237,7 @@ footer small {
     display: none;
   }
 
-  /* Logo, sign-in and menu share one row; extra actions (Your Jar, Tracker) still wrap if needed. */
+  /* Logo, sign-in and menu share one row; extra actions (Greenhouse, Tracker) still wrap if needed. */
   .site-header {
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;

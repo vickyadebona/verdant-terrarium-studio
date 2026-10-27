@@ -68,8 +68,8 @@ export const StripeCheckoutModal: React.FC = () => {
   const canPay = quote.valid && !isProcessing;
   const checkoutProblem = !quote.valid
     ? items.length === 0
-      ? 'Your jar is empty. Add a design or an edition before checking out.'
-      : `Some items in your jar are no longer available (${quote.unknownSkus.join(', ')}). Remove them to continue.`
+      ? 'Your greenhouse is empty. Add a design or an edition before checking out.'
+      : `Some items in your greenhouse are no longer available (${quote.unknownSkus.join(', ')}). Remove them to continue.`
     : paymentError;
 
   const cardDigits = cardNumber.replace(/\D/g, '');
