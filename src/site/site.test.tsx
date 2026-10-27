@@ -247,3 +247,23 @@ describe('After an order goes through', () => {
     expect(JSON.parse(sessionStorage.getItem('terrascape_builder_selected_v1') ?? '[]')).toEqual(['jar_smooth']);
   }, 10000);
 });
+
+describe('Our Story closing panel', () => {
+  it('invites guests to create an account or log in', () => {
+    renderSiteAt('/our-story');
+
+    expect(screen.getByRole('heading', { name: /Save your worlds/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create an account/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Already have one\? Log in/ })).toHaveAttribute('href', '/account?mode=login');
+  });
+
+  it('sends signed-in shoppers to the Studio instead', async () => {
+    signInAsTestUser();
+    renderSiteAt('/our-story');
+
+    expect(screen.queryByRole('button', { name: /Create an account/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Log in/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Design in the Studio/ }));
+    expect(await screen.findByRole('heading', { name: /Choose your vessel/ })).toBeInTheDocument();
+  });
+});

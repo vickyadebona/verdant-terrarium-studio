@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Terrarium3DShowcase from "../Terrarium3DShowcase";
 import Terrarium2DLayeredView from "../Terrarium2DLayeredView";
 import {
@@ -939,6 +940,7 @@ function About({
   navigate: (page: Page) => void;
   selected: string[];
 }) {
+  const { isAuthenticated } = useAuth();
   return (
     <>
       <section className="about-hero">
@@ -1114,21 +1116,45 @@ function About({
         </div>
       </section>
       <section className="signup-panel">
-        <div>
-          <p className="eyebrow">Join the studio</p>
-          <h2>
-            Save your worlds.
-            <br />
-            Watch them grow.
-          </h2>
-          <p>
-            Create an account to save designs, track orders, and receive care notes tailored to your
-            terrarium.
-          </p>
-          <button className="primary-button" onClick={() => navigate("account")}>
-            Create an account <ArrowIcon />
-          </button>
-        </div>
+        {/* Signed-in shoppers are sent on to the Studio; guests are invited to join or log in. */}
+        {isAuthenticated ? (
+          <div>
+            <p className="eyebrow">Welcome back</p>
+            <h2>
+              Your next world
+              <br />
+              starts here.
+            </h2>
+            <p>
+              Pick a vessel, layer the foundation, and plant it out in the Studio. Your designs, orders,
+              and care notes stay with your account.
+            </p>
+            <button className="primary-button" onClick={() => navigate("build")}>
+              Design in the Studio <ArrowIcon />
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p className="eyebrow">Join the studio</p>
+            <h2>
+              Save your worlds.
+              <br />
+              Watch them grow.
+            </h2>
+            <p>
+              Create an account to save designs, track orders, and receive care notes tailored to your
+              terrarium.
+            </p>
+            <div className="signup-actions">
+              <button className="primary-button" onClick={() => navigate("account")}>
+                Create an account <ArrowIcon />
+              </button>
+              <Link href="/account?mode=login" className="text-button">
+                Already have one? <span className="underlined">Log in</span>
+              </Link>
+            </div>
+          </div>
+        )}
         <img src={images.fern} alt="Lush green fern in a terrarium" />
       </section>
     </>
