@@ -165,6 +165,8 @@ Browser-only state (cart, orders, Studio design) starts empty on the server and 
 - `role` (CUSTOMER, STUDIO, ADMIN) can't be set at sign-up; our team's accounts are promoted in the database.
 - Requests are accepted only from our own hosts (`terrascape-*.vercel.app`, localhost); repeated attempts are rate-limited in production.
 - Env: `BETTER_AUTH_SECRET` (different per environment, required on Vercel), optional `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. See `.env.example`.
+- The account page (`src/site/AccountSettings.tsx`) edits the name and preferred payment method, and changes the password (which signs out other devices). Google-only accounts have no password to change. Email changes wait for verification emails.
+- `preferredPaymentMethod` is only a preference (`src/catalog/paymentPreferences.ts`), validated on the server and marked at checkout. Card details are never stored; saved cards belong with Stripe.
 - Not yet: email verification and password reset (they need an email service).
 
 ### I. Databases per Environment (Neon + Prisma)

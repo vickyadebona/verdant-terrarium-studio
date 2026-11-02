@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { screen, fireEvent, within } from '@testing-library/react';
 import { renderSiteAt, signInAsTestUser } from '../test/test-utils';
+import { signInMockUser } from '../test/authClientMock';
 
 function renderStudio() {
   return renderSiteAt('/studio');
@@ -265,5 +266,61 @@ describe('Our Story closing panel', () => {
     expect(screen.queryByRole('link', { name: /Log in/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Design in the Studio/ }));
     expect(await screen.findByRole('heading', { name: /Choose your vessel/ })).toBeInTheDocument();
+  });
+});
+
+describe('Account page', () => {
+  it('shows only name and email in the profile, without the removed rows', async () => {
+    signInAsTestUser();
+    renderSiteAt('/account');
+
+    expect(await screen.findByRole('heading', { name: 'Edit profile' })).toBeInTheDocument();
+    expect(screen.getByText('Test Collector', { selector: 'strong' })).toBeInTheDocument();
+    for (const removed of ['Authentication Method', 'Member Since', 'In Your Greenhouse']) {
+      expect(screen.queryByText(removed)).not.toBeInTheDocument();
+    }
+  });
+
+  it('saves a new name and preferred payment method, and checkout highlights it', async () => {
+    signInAsTestUser();
+    renderSiteAt('/account');
+
+    fireEvent.change(await screen.findByLabelText('Full name'), { target: { value: 'Renamed Collector' } });
+    fireEvent.change(screen.getByLabelText(/Preferred payment method/), { target: { value: 'apple_pay' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your profile is saved.');
+    expect(screen.getByRole('heading', { name: 'Welcome, Renamed Collector.' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Preferred payment method/)).toHaveValue('apple_pay');
+  });
+
+  it('refuses a mismatched or wrong password, then changes it', async () => {
+    signInAsTestUser();
+    renderSiteAt('/account');
+    const form = await screen.findByRole('form', { name: 'Change password' });
+    const fill = (current: string, next: string, confirm: string) => {
+      fireEvent.change(within(form).getByLabelText('Current password'), { target: { value: current } });
+      fireEvent.change(within(form).getByLabelText('New password'), { target: { value: next } });
+      fireEvent.change(within(form).getByLabelText('Confirm new password'), { target: { value: confirm } });
+      fireEvent.submit(form);
+    };
+
+    fill('test-password-1', 'brand-new-pass', 'different-pass');
+    expect(await within(form).findByRole('alert')).toHaveTextContent("The new passwords don't match.");
+
+    fill('wrong-password', 'brand-new-pass', 'brand-new-pass');
+    expect(await within(form).findByRole('alert')).toHaveTextContent('Your current password is incorrect.');
+
+    fill('test-password-1', 'brand-new-pass', 'brand-new-pass');
+    expect(await within(form).findByRole('status')).toHaveTextContent('Your password is changed.');
+    expect(within(form).getByLabelText('Current password')).toHaveValue('');
+  });
+
+  it('explains that Google-only accounts have no password to change', async () => {
+    signInMockUser({ email: 'google@example.test' }, 'google');
+    renderSiteAt('/account');
+
+    expect(await screen.findByText(/managed by your Google account/)).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Change password' })).not.toBeInTheDocument();
   });
 });

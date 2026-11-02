@@ -4,7 +4,14 @@ import { useSyncExternalStore } from 'react';
  * In-memory stand-in for the Better Auth browser client (src/lib/authClient.ts), so component
  * tests run without a server or database. Accounts and the session reset before every test.
  */
-type MockUser = { id: string; name: string; email: string; image: string | null; createdAt: Date };
+type MockUser = {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  createdAt: Date;
+  preferredPaymentMethod: string | null;
+};
 type MockSession = { user: MockUser; session: { expiresAt: Date } } | null;
 type MockError = { code: string; status: number; message: string };
 
@@ -32,6 +39,7 @@ export function signInMockUser(user: Partial<MockUser> & { email?: string } = {}
     email: 'collector@example.test',
     image: null,
     createdAt: new Date('2026-10-01T00:00:00.000Z'),
+    preferredPaymentMethod: null,
     ...user,
   };
   accounts.set(full.email, { user: full, password: 'test-password-1', providerId });
@@ -53,7 +61,7 @@ export const authClient = {
   signUp: {
     async email({ email, password, name }: { email: string; password: string; name: string }) {
       if (accounts.has(email)) return fail('USER_ALREADY_EXISTS', 422, 'User already exists');
-      const user: MockUser = { id: `usr_${accounts.size + 1}`, name, email, image: null, createdAt: new Date() };
+      const user: MockUser = { id: `usr_${accounts.size + 1}`, name, email, image: null, createdAt: new Date(), preferredPaymentMethod: null };
       accounts.set(email, { user, password, providerId: 'credential' });
       setSession(user);
       return { data: { user }, error: null };
@@ -71,6 +79,20 @@ export const authClient = {
     async social(_options: { provider: string; callbackURL?: string }) {
       return { data: { redirect: true }, error: null };
     },
+  },
+  async updateUser(changes: { name?: string; preferredPaymentMethod?: string | null }) {
+    if (!current) return fail('UNAUTHORIZED', 401, 'Not signed in');
+    const account = accounts.get(current.user.email);
+    if (!account) return fail('UNAUTHORIZED', 401, 'Not signed in');
+    account.user = { ...account.user, ...changes };
+    setSession(account.user);
+    return { data: { status: true }, error: null };
+  },
+  async changePassword({ currentPassword, newPassword }: { currentPassword: string; newPassword: string; revokeOtherSessions?: boolean }) {
+    const account = current ? accounts.get(current.user.email) : undefined;
+    if (!account || account.password !== currentPassword) return fail('INVALID_PASSWORD', 400, 'Invalid password');
+    account.password = newPassword;
+    return { data: { status: true }, error: null };
   },
   async signOut() {
     setSession(null);

@@ -142,7 +142,7 @@ export function quoteOrder(items: CartItem[], shippingOption: ShippingOption): O
 
   const valid = items.length > 0 && unknownSkus.length === 0;
   const assemblyCents = valid ? assemblyCentsFor(items, shippingOption) : 0;
-  const shippingCents = valid ? shippingCentsFor(shippingOption, subtotalCents) : 0;
+  const shippingCents = valid ? shippingCentsFor(shippingOption) : 0;
   const taxCents = Math.round((subtotalCents + assemblyCents + shippingCents) * ESTIMATED_TAX_RATE);
 
   return {

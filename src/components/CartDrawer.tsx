@@ -308,18 +308,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
             ))
           )}
 
-          {items.length > 0 && (
-            <div className="rounded-xl bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] p-3.5">
-              <DeliveryOptionPicker
-                name="cart-delivery"
-                value={shippingOption}
-                onChange={setShippingOption}
-                subtotalCents={estimate.subtotalCents}
-                customBuildCount={customBuildCount}
-              />
-            </div>
-          )}
-
           {/* Quick-Add Accessories Bar */}
           {items.length > 0 && (
             <div className="rounded-xl bg-[rgba(184,194,161,0.18)] border border-[rgba(24,57,43,0.16)] p-3.5 space-y-2.5">
@@ -337,6 +325,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onLoadCustomBlueprintToS
                   </div>
                 </button>
               </div>
+            </div>
+          )}
+
+          {items.length > 0 && (
+            <div className="rounded-xl bg-[#f0ede3] border border-[rgba(24,57,43,0.14)] p-3.5">
+              <DeliveryOptionPicker
+                name="cart-delivery"
+                value={shippingOption}
+                onChange={setShippingOption}
+                customBuildCount={customBuildCount}
+              />
             </div>
           )}
         </div>

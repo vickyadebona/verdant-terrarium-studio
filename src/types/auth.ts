@@ -1,3 +1,5 @@
+import type { PaymentPreference } from '../catalog/paymentPreferences';
+
 export type AuthProviderType = 'google' | 'credentials';
 export type AuthProvider = AuthProviderType;
 
@@ -8,6 +10,9 @@ export interface User {
   avatarUrl?: string;
   provider: AuthProvider;
   createdAt: string;
+  /** False for accounts that only sign in with Google. Undefined until it has been looked up. */
+  hasPassword?: boolean;
+  preferredPaymentMethod: PaymentPreference | null;
 }
 
 export interface Session {
@@ -40,6 +45,11 @@ export interface AuthContextType {
     }
   ) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
+  updateProfile: (changes: {
+    name: string;
+    preferredPaymentMethod: PaymentPreference | null;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
   /** True when Google sign-in is configured for this environment. */
   googleSignInEnabled: boolean;
   isAuthModalOpen: boolean;

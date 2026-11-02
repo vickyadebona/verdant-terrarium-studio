@@ -2,6 +2,7 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { isPaymentPreference } from "../catalog/paymentPreferences";
 import { googleSignInEnabled } from "./authFlags";
 import { db } from "./db";
 
@@ -35,6 +36,24 @@ export const auth = betterAuth({
     additionalFields: {
       // Our team gets STUDIO or ADMIN in the database; nobody can set it when signing up.
       role: { type: "string", required: false, defaultValue: "CUSTOMER", input: false },
+      // Shoppers choose this on their account page; only the known options are accepted.
+      preferredPaymentMethod: {
+        type: "string",
+        required: false,
+        input: true,
+        validator: {
+          input: {
+            "~standard": {
+              version: 1,
+              vendor: "terrascape",
+              validate: (value: unknown) =>
+                value === null || isPaymentPreference(value)
+                  ? { value }
+                  : { issues: [{ message: "Unknown payment preference" }] },
+            },
+          },
+        },
+      },
     },
   },
   rateLimit: {

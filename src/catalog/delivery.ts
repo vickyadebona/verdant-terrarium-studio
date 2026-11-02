@@ -1,7 +1,6 @@
 import {
   COURIER_FEE_CENTS,
   ESTIMATED_TAX_RATE,
-  FREE_SHIPPING_THRESHOLD_CENTS,
   SHIPPED_FEE_CENTS,
 } from './index';
 import { formatCents } from './money';
@@ -36,7 +35,7 @@ export const DELIVERY_OPTIONS: Record<ShippingOption, DeliveryOptionSpec> = {
     carrier: 'TerraScape Studio Courier',
   },
   pickup: {
-    title: 'Studio pickup · Venice, CA',
+    title: 'Studio pickup · Los Angeles, CA',
     summary: `Planted in our studio and rested ${QUARANTINE_HOURS} hours, then ready for you to collect.`,
     assembled: true,
     leadBusinessDays: { min: 5, max: 7 },
@@ -54,21 +53,16 @@ export function isShippingOption(value: unknown): value is ShippingOption {
   return typeof value === 'string' && (SHIPPING_OPTIONS as string[]).includes(value);
 }
 
-export function shippingCentsFor(option: ShippingOption, subtotalCents: number): number {
+export function shippingCentsFor(option: ShippingOption): number {
   if (option === 'pickup') return 0;
-  if (option === 'courier') return COURIER_FEE_CENTS;
-  return subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : SHIPPED_FEE_CENTS;
+  return option === 'courier' ? COURIER_FEE_CENTS : SHIPPED_FEE_CENTS;
 }
 
-/** "$18", "Free" or "$18 · free over $150", for option lists and product pages. */
-export function deliveryFeeLabel(option: ShippingOption, subtotalCents?: number): string {
-  if (option === 'pickup') return 'Free';
-  if (option === 'courier') return formatCents(COURIER_FEE_CENTS);
-  if (subtotalCents === undefined) {
-    return `${formatCents(SHIPPED_FEE_CENTS)} · free over ${formatCents(FREE_SHIPPING_THRESHOLD_CENTS)}`;
-  }
-  const cents = shippingCentsFor(option, subtotalCents);
-  return cents === 0 ? 'Free' : formatCents(cents);
+/** Says what the price is for, so it reads on its own in a list: "$18 shipping", "Free pickup". */
+export function deliveryFeeLabel(option: ShippingOption): string {
+  if (option === 'pickup') return 'Free pickup';
+  const fee = formatCents(shippingCentsFor(option));
+  return option === 'courier' ? `${fee} delivery` : `${fee} shipping`;
 }
 
 export function leadTimeLabel(option: ShippingOption): string {

@@ -108,6 +108,24 @@ describe('CartDrawer Component', () => {
     expect(screen.getByText(/Your greenhouse is empty/i)).toBeInTheDocument();
   });
 
+  it('lists quick-add accessories under the jars and above delivery, with labelled prices', () => {
+    render(
+      <AllProviders>
+        <CartTestHost />
+      </AllProviders>
+    );
+    fireEvent.click(screen.getByText('Add Test Item'));
+    fireEvent.click(screen.getByText('Open Cart Drawer'));
+
+    const accessories = screen.getByText(/Quick-Add Vivarium Accessories/);
+    const delivery = screen.getByRole('group', { name: 'Delivery for this order' });
+    expect(accessories.compareDocumentPosition(delivery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    expect(within(delivery).getByText('$18 delivery')).toBeInTheDocument();
+    expect(within(delivery).getByText('Free pickup')).toBeInTheDocument();
+    expect(within(delivery).getByText('$18 shipping')).toBeInTheDocument();
+  });
+
   it('closes cart on Escape key press', () => {
     render(
       <AllProviders>

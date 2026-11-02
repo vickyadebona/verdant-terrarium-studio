@@ -7,7 +7,6 @@ import Terrarium2DLayeredView from "../Terrarium2DLayeredView";
 import {
   ARRIVAL_GUARANTEE_DAYS,
   ASSEMBLY_FEE_CENTS,
-  FREE_SHIPPING_THRESHOLD_CENTS,
   SHIPPED_FEE_CENTS,
   STUDIO_REQUIRED_CATEGORIES,
   SOIL_CONTOUR_RANGE,
@@ -26,10 +25,10 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import type { User as UserProfile } from "../types/auth";
 import { furthestReachableStep, isStudioStepComplete } from "../catalog/studioBlueprint";
-import { greenhouseCountLabel } from "../utils/greenhouse";
 import { EditionDetailPage } from "../components/EditionDetailPage";
 import type { Page, EditionKey } from "../utils/router";
 import { STUDIO_EDITIONS, images, type StudioEdition } from "../catalog/editions";
+import { AccountSettings } from "./AccountSettings";
 import { useStudio } from "./StudioContext";
 import { useAppNavigate } from "./navigation";
 import { ADD_TO_GREENHOUSE_PROMPT, useSignedInAction } from "./useSignedInAction";
@@ -817,7 +816,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "How long does it take to build and ship my custom terrarium?",
-        a: `Studio builds are soldered, planted and rested for ${QUARANTINE_HOURS} hours in our Los Angeles, CA studio, then hand-delivered by our Southern California courier or ready for pickup in ${DELIVERY_OPTIONS.courier.leadBusinessDays.min}–${DELIVERY_OPTIONS.courier.leadBusinessDays.max} business days. Nationwide orders ship as DIY kits within ${DELIVERY_OPTIONS.shipped.leadBusinessDays.min}–${DELIVERY_OPTIONS.shipped.leadBusinessDays.max} business days; shipping is ${formatCents(SHIPPED_FEE_CENTS)}, free on orders over ${formatCents(FREE_SHIPPING_THRESHOLD_CENTS)}.`,
+        a: `Studio builds are soldered, planted and rested for ${QUARANTINE_HOURS} hours in our Los Angeles, CA studio, then hand-delivered by our Southern California courier or ready for pickup in ${DELIVERY_OPTIONS.courier.leadBusinessDays.min}–${DELIVERY_OPTIONS.courier.leadBusinessDays.max} business days. Nationwide orders ship as DIY kits within ${DELIVERY_OPTIONS.shipped.leadBusinessDays.min}–${DELIVERY_OPTIONS.shipped.leadBusinessDays.max} business days; shipping is ${formatCents(SHIPPED_FEE_CENTS)}.`,
       },
     ],
   },
@@ -1176,7 +1175,7 @@ function Account({
   onLogin?: (user: UserProfile) => void;
   onLogout: () => void;
 }) {
-  const { openCart, items, itemCount, openTrackerModal, orders } = useCart();
+  const { openCart, itemCount, openTrackerModal, orders } = useCart();
   const { signIn, isLoading, googleSignInEnabled } = useAuth();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -1237,23 +1236,6 @@ function Account({
                 <span>Email Address</span>
                 <strong>{currentUser.email}</strong>
               </div>
-              <div className="account-profile-row">
-                <span>Authentication Method</span>
-                <strong style={{ color: "var(--ts-forest)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#34d399", display: "inline-block" }} />
-                  {currentUser.provider === "google" ? "Google OAuth Verified" : "Email & Password"}
-                </strong>
-              </div>
-              <div className="account-profile-row">
-                <span>Member Since</span>
-                <strong>
-                  {new Date(currentUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </strong>
-              </div>
-              <div className="account-profile-row">
-                <span>In Your Greenhouse</span>
-                <strong>{greenhouseCountLabel(items)}</strong>
-              </div>
               {orders.length > 0 && (
                 <div className="account-profile-row">
                   <span>Active Assembly Orders</span>
@@ -1261,6 +1243,8 @@ function Account({
                 </div>
               )}
             </div>
+
+            <AccountSettings user={currentUser} />
 
             <div className="account-actions-row">
               {itemCount > 0 ? (

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authClient } from '../lib/authClient';
+import { isPaymentPreference } from '../catalog/paymentPreferences';
 import type {
   AuthProviderType,
   User,
@@ -26,6 +27,8 @@ function describeAuthError(error: AuthErrorLike, fallback: string): string {
       return 'An account with this email already exists. Please sign in.';
     case 'INVALID_EMAIL_OR_PASSWORD':
       return 'Invalid email or password';
+    case 'INVALID_PASSWORD':
+      return 'Your current password is incorrect.';
     case 'PASSWORD_TOO_SHORT':
       return 'Use at least 8 characters for your password.';
     case 'INVALID_EMAIL':
@@ -45,8 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; googleSignInEna
   const [isBusy, setIsBusy] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalConfig, setAuthModalConfig] = useState<AuthModalConfig | null>(null);
-  // How the signed-in shopper signs in (shown on the account page), looked up per user.
-  const [signInMethod, setSignInMethod] = useState<{ userId: string; provider: AuthProviderType } | null>(null);
+  // How the signed-in shopper signs in (decides the account page's password section), looked up per user.
+  const [signInMethod, setSignInMethod] = useState<{
+    userId: string;
+    provider: AuthProviderType;
+    hasPassword: boolean;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -65,9 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; googleSignInEna
     authClient.listAccounts().then(({ data }) => {
       if (cancelled || !data) return;
       const provider = data.some((account) => account.providerId === 'google') ? 'google' : 'credentials';
-      setSignInMethod({ userId, provider });
+      const hasPassword = data.some((account) => account.providerId === 'credential');
+      setSignInMethod({ userId, provider, hasPassword });
     }).catch(() => {
-      // Not critical: the account page falls back to email & password.
+      // Not critical: the account page leaves out the password section.
     });
     return () => {
       cancelled = true;
@@ -82,6 +90,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; googleSignInEna
         avatarUrl: sessionUser.image ?? undefined,
         provider: signInMethod?.userId === sessionUser.id ? signInMethod.provider : 'credentials',
         createdAt: new Date(sessionUser.createdAt).toISOString(),
+        hasPassword: signInMethod?.userId === sessionUser.id ? signInMethod.hasPassword : undefined,
+        preferredPaymentMethod: isPaymentPreference(sessionUser.preferredPaymentMethod)
+          ? sessionUser.preferredPaymentMethod
+          : null,
       }
     : null;
 
@@ -167,6 +179,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; googleSignInEna
     }
   }, []);
 
+  const updateProfile = useCallback<AuthContextType['updateProfile']>(async ({ name, preferredPaymentMethod }) => {
+    const trimmed = name.trim();
+    if (!trimmed) return { ok: false, error: 'Please enter your name.' };
+    try {
+      const { error } = await authClient.updateUser({ name: trimmed, preferredPaymentMethod });
+      if (error) return { ok: false, error: describeAuthError(error, 'Your profile could not be saved.') };
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Your profile could not be saved.' };
+    }
+  }, []);
+
+  const changePassword = useCallback<AuthContextType['changePassword']>(async (currentPassword, newPassword) => {
+    if (newPassword.length < 8) return { ok: false, error: 'Use at least 8 characters for your password.' };
+    try {
+      // Signs out any other device, in case the old password was the problem.
+      const { error } = await authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true });
+      if (error) return { ok: false, error: describeAuthError(error, 'Your password could not be changed.') };
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Your password could not be changed.' };
+    }
+  }, []);
+
   const session: Session = {
     user,
     status: isPending ? 'loading' : user ? 'authenticated' : 'unauthenticated',
@@ -184,6 +220,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; googleSignInEna
         isLoading,
         signIn,
         signOut,
+        updateProfile,
+        changePassword,
         googleSignInEnabled,
         isAuthModalOpen,
         authModalConfig,

@@ -14,7 +14,6 @@ interface DeliveryOptionPickerProps {
   name: string;
   value: ShippingOption;
   onChange: (option: ShippingOption) => void;
-  subtotalCents: number;
   /** Number of custom Studio builds in the greenhouse, for the assembly fee note. */
   customBuildCount: number;
 }
@@ -24,7 +23,6 @@ export const DeliveryOptionPicker: React.FC<DeliveryOptionPickerProps> = ({
   name,
   value,
   onChange,
-  subtotalCents,
   customBuildCount,
 }) => (
   <fieldset className="space-y-2">
@@ -57,7 +55,7 @@ export const DeliveryOptionPicker: React.FC<DeliveryOptionPickerProps> = ({
           <span className="flex-1 min-w-0">
             <span className="flex items-baseline justify-between gap-2 font-semibold text-[#18392b]">
               <span>{spec.title}</span>
-              <span className="shrink-0">{deliveryFeeLabel(option, subtotalCents)}</span>
+              <span className="shrink-0">{deliveryFeeLabel(option)}</span>
             </span>
             <span className="block text-[#546358] mt-0.5 leading-relaxed">
               {spec.summary} {leadTimeLabel(option)}.

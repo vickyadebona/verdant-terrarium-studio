@@ -226,9 +226,10 @@ export const ACCESSORY_PRODUCTS = {
 
 /** Hand-planting and soldering in the LA studio, per custom build. */
 export const ASSEMBLY_FEE_CENTS = 2500;
+// Placeholder fee until the team confirms real shipping costs.
 export const COURIER_FEE_CENTS = 1800;
-export const SHIPPED_FEE_CENTS = 1800;
-export const FREE_SHIPPING_THRESHOLD_CENTS = 15000;
+/** Getting an order to the shopper's door costs the same by courier or nationwide. */
+export const SHIPPED_FEE_CENTS = COURIER_FEE_CENTS;
 /** Estimated CA sales tax until Stripe Tax computes it server-side. */
 export const ESTIMATED_TAX_RATE = 0.095;
 

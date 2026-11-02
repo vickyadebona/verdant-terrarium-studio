@@ -91,8 +91,8 @@ export function EditionDetailPage({
           <div className="edition-price-row">
             <strong>{formatCents(edition.priceCents)}</strong>
             <span>
-              Plus tax · Southern California courier {deliveryFeeLabel("courier")}, free studio pickup, or
-              nationwide as a DIY kit ({deliveryFeeLabel("shipped", edition.priceCents)} shipping)
+              Plus tax · Southern California courier ({deliveryFeeLabel("courier")}), free studio pickup, or
+              nationwide as a DIY kit ({deliveryFeeLabel("shipped")})
             </span>
           </div>
 

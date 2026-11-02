@@ -135,7 +135,7 @@ describe('quoteOrder', () => {
     const quote = quoteOrder([customItem()], 'shipped');
     expect(quote.assemblyCents).toBe(0);
     expect(quote.subtotalCents).toBe(BLUEPRINT_CENTS);
-    expect(quote.shippingCents).toBe(0); // free over $150
+    expect(quote.shippingCents).toBe(1800);
   });
 
   it('flags and corrects a tampered client price', () => {
@@ -144,8 +144,11 @@ describe('quoteOrder', () => {
     expect(quote.subtotalCents).toBe(BLUEPRINT_CENTS);
   });
 
-  it('charges shipping under $150 and nothing for studio pickup', () => {
+  it('charges nationwide the same as courier at any order size, and nothing for studio pickup', () => {
     expect(quoteOrder([copperLeds], 'shipped').shippingCents).toBe(1800);
+    expect(quoteOrder([customItem({ quantity: 5 })], 'shipped').shippingCents).toBe(
+      quoteOrder([customItem({ quantity: 5 })], 'courier').shippingCents
+    );
     expect(quoteOrder([copperLeds], 'pickup').shippingCents).toBe(0);
   });
 
@@ -187,10 +190,9 @@ describe('studioStartingPriceCents', () => {
 
 describe('delivery promises', () => {
   it('labels fees from the same constants the quote uses', () => {
-    expect(deliveryFeeLabel('courier')).toBe('$18');
-    expect(deliveryFeeLabel('pickup')).toBe('Free');
-    expect(deliveryFeeLabel('shipped')).toBe('$18 · free over $150');
-    expect(deliveryFeeLabel('shipped', 16200)).toBe('Free');
+    expect(deliveryFeeLabel('courier')).toBe('$18 delivery');
+    expect(deliveryFeeLabel('pickup')).toBe('Free pickup');
+    expect(deliveryFeeLabel('shipped')).toBe('$18 shipping');
   });
 
   it('counts business days, skipping weekends', () => {

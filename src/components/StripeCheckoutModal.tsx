@@ -12,6 +12,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { INSTALLMENT_COUNT } from '../catalog';
+import type { PaymentPreference } from '../catalog/paymentPreferences';
 import { formatCentsExact } from '../catalog/money';
 import { TAX_RATE_LABEL } from '../catalog/delivery';
 import { createStripeOrder, quoteOrder } from '../utils/stripeCheckoutEngine';
@@ -66,6 +67,11 @@ export const StripeCheckoutModal: React.FC = () => {
   const total = formatCentsExact(quote.totalCents);
   const installmentAmount = formatCentsExact(Math.ceil(quote.totalCents / INSTALLMENT_COUNT));
   const canPay = quote.valid && !isProcessing;
+  // Pickup orders are collected from the studio, so they need no address.
+  const isPickup = shippingOption === 'pickup';
+  const preferred = user?.preferredPaymentMethod ?? null;
+  const preferredTag = (method: PaymentPreference) =>
+    preferred === method ? <span className="text-[10px] font-normal opacity-80">· Preferred</span> : null;
   const checkoutProblem = !quote.valid
     ? items.length === 0
       ? 'Your greenhouse is empty. Add a design or an edition before checking out.'
@@ -79,7 +85,7 @@ export const StripeCheckoutModal: React.FC = () => {
     const missing: string[] = [];
     if (!fullName.trim()) missing.push('full name');
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) missing.push('email address');
-    if (shippingOption !== 'pickup') {
+    if (!isPickup) {
       if (!street.trim()) missing.push('street address');
       if (!city.trim()) missing.push('city');
       if (!state.trim()) missing.push('state');
@@ -130,10 +136,11 @@ export const StripeCheckoutModal: React.FC = () => {
           items,
           customer: { name: fullName, email, phone },
           shipping: {
-            street,
-            city,
-            state,
-            zip,
+            // Anything typed before switching to pickup stays off the order.
+            street: isPickup ? '' : street,
+            city: isPickup ? '' : city,
+            state: isPickup ? '' : state,
+            zip: isPickup ? '' : zip,
             shippingOption,
             deliveryNotes,
           },
@@ -206,6 +213,7 @@ export const StripeCheckoutModal: React.FC = () => {
               >
                 <Smartphone className="w-4 h-4" />
                 <span>Apple Pay</span>
+                {preferredTag('apple_pay')}
               </button>
               <button
                 type="button"
@@ -215,6 +223,7 @@ export const StripeCheckoutModal: React.FC = () => {
               >
                 <Sparkles className="w-4 h-4 text-[#657a4e]" />
                 <span>Google Pay</span>
+                {preferredTag('google_pay')}
               </button>
               <button
                 type="button"
@@ -224,6 +233,7 @@ export const StripeCheckoutModal: React.FC = () => {
               >
                 <ShieldCheck className="w-4 h-4 text-[#657a4e]" />
                 <span>Stripe Link</span>
+                {preferredTag('stripe_link')}
               </button>
             </div>
           </div>
@@ -241,7 +251,6 @@ export const StripeCheckoutModal: React.FC = () => {
             name="checkout-delivery"
             value={shippingOption}
             onChange={setShippingOption}
-            subtotalCents={quote.subtotalCents}
             customBuildCount={customBuildCount}
           />
 
@@ -249,7 +258,7 @@ export const StripeCheckoutModal: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#546358] font-sans">
-                Customer &amp; Shipping Address
+                {isPickup ? 'Your Details' : <>Customer &amp; Shipping Address</>}
               </label>
               {user && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[rgba(184,194,161,0.3)] text-[#18392b] border border-[rgba(24,57,43,0.16)] flex items-center gap-1">
@@ -283,18 +292,20 @@ export const StripeCheckoutModal: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
-                <label htmlFor="checkout-street" className="text-[11px] text-[#546358] block mb-1">Street Address</label>
-                <input
-                  id="checkout-street"
-                  autoComplete="street-address"
-                  type="text"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-[rgba(24,57,43,0.18)] focus:border-[#18392b] text-[#18392b] outline-none text-xs"
-                />
-              </div>
+            <div className={`grid grid-cols-1 gap-3 ${isPickup ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+              {!isPickup && (
+                <div className="sm:col-span-2">
+                  <label htmlFor="checkout-street" className="text-[11px] text-[#546358] block mb-1">Street Address</label>
+                  <input
+                    id="checkout-street"
+                    autoComplete="street-address"
+                    type="text"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-[rgba(24,57,43,0.18)] focus:border-[#18392b] text-[#18392b] outline-none text-xs"
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="checkout-phone" className="text-[11px] text-[#546358] block mb-1">Phone Number</label>
                 <input
@@ -308,6 +319,7 @@ export const StripeCheckoutModal: React.FC = () => {
               </div>
             </div>
 
+            {!isPickup && (
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label htmlFor="checkout-city" className="text-[11px] text-[#546358] block mb-1">City</label>
@@ -343,17 +355,24 @@ export const StripeCheckoutModal: React.FC = () => {
                 />
               </div>
             </div>
+            )}
+
+            {isPickup && (
+              <p className="text-[11px] text-[#546358]">
+                No address needed: you&apos;ll collect this order from our Los Angeles studio.
+              </p>
+            )}
 
             <div>
               <label htmlFor="checkout-notes" className="text-[11px] text-[#546358] block mb-1">
-                Workshop Assembly Notes / Delivery Gate Codes
+                {isPickup ? 'Workshop Assembly Notes' : 'Workshop Assembly Notes / Delivery Gate Codes'}
               </label>
               <input
                 id="checkout-notes"
                 type="text"
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
-                placeholder="e.g. Please place taller fern on the right; call upon arrival"
+                placeholder={isPickup ? 'e.g. Please place taller fern on the right' : 'e.g. Please place taller fern on the right; call upon arrival'}
                 className="w-full px-3 py-2 rounded-xl bg-white border border-[rgba(24,57,43,0.18)] focus:border-[#18392b] text-[#18392b] outline-none text-xs"
               />
             </div>
@@ -365,6 +384,7 @@ export const StripeCheckoutModal: React.FC = () => {
               <label className="text-xs font-semibold uppercase tracking-wider text-[#546358] flex items-center gap-1.5 font-sans">
                 <CreditCard className="w-4 h-4 text-[#657a4e]" />
                 Stripe Payment Element (Card &amp; BNPL)
+                {preferredTag('card')}
               </label>
               {process.env.NODE_ENV !== "production" && (
                 <button
