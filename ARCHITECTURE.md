@@ -7,9 +7,12 @@ Welcome to the **TerraScape** codebase! This document outlines the application a
 ## 1. High-Level Overview
 
 **TerraScape** is a digital e-commerce and interactive specification platform for custom living botanical terrariums equipped with custom-engineered microclimate hardware:
-- **PWM Circadian LED Lighting:** Microcontroller-driven spectrum control mimicking natural sun & twilight cycles.
-- **Ultrasonic Piezo Misting:** High-frequency atomizing transducers producing ultra-fine micro-mist (1–5µm droplet diameter).
-- **Active Aeration:** Micro-ventilation fans providing continuous air exchange to prevent mold.
+- **Warm light:** 3000K warm white LED with an on/off button (no dimming, schedule or circadian mode).
+- **Mister:** one press mists for about 30 s from a 2 oz reservoir of distilled or purified water; it must never run dry. Say "mister", not "fog" or "fogger".
+- **Fan:** 5 V, on/off; keeps the glass clear so the scape stays visible.
+- **Power:** a UL-certified 5 V 2 A USB adapter ships in the box, with a white cord about 5.5 ft long.
+
+Source: Andrew's "Product Specifications 2026" doc (2026-11-10). The lineup (which units include the fan and mister) is still a Proposed decision.
 
 The application guides customers through a curated 4-step wizard (**01 Vessel & Lid** $\rightarrow$ **02 Foundation** $\rightarrow$ **03 Flora** $\rightarrow$ **04 Details**), pairs it with a dual **2D procedural cross-section stage** and an interactive **Three.js WebGL 3D showcase**, and manages cart, authentication, and living assembly order tracking.
 

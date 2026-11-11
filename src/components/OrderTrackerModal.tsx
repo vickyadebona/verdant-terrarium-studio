@@ -36,8 +36,8 @@ const STAGES: StageMeta[] = [
   },
   {
     key: 'CIRCUIT_SOLDERING',
-    label: 'Circuit Soldering',
-    description: 'Our team solders the PWM circadian LED & ultrasonic piezo mist circuit.',
+    label: 'Lid Assembly',
+    description: 'Our team assembles and tests the lid light, fan & mister.',
     icon: Wrench,
   },
   {

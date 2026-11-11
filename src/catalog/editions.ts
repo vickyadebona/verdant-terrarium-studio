@@ -89,10 +89,10 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     sku: EDITION_PRODUCTS.cloud_forest.sku,
     priceCents: EDITION_PRODUCTS.cloud_forest.priceCents,
     image: images.collection,
-    vessel: "Tall Apothecary Jar · 14 in",
-    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    vessel: "Tall Apothecary Jar",
+    vesselNote: "Smooth matte-white collar lid with built-in warm light, fan & mister",
     overview:
-      "Inspired by high-altitude Pacific coastal ravines where ocean fog gathers in sheltered tree canopies. The Cloud Forest balances vertical cascading foliage against sculpted ground mounds, creating a self-regulating water cycle under hand-blown glass.",
+      "Inspired by high-altitude Pacific coastal ravines where ocean fog gathers in sheltered tree canopies. The Cloud Forest balances vertical cascading foliage against sculpted ground mounds, creating a self-regulating water cycle under glass.",
     story:
       "Every Cloud Forest build is planted by hand in our Los Angeles greenhouse. We anchor a four-layer woodland substrate, tuck living cushion moss blankets around the stone contours, and seat our integrated smart lid so your terrarium begins its rain cycle the moment you plug it in.",
     presetKey: "cloud_forest",
@@ -104,7 +104,7 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         description:
           "Soft, arching dark-emerald fronds with leathery button-shaped pinnae that catch and channel morning mist.",
         humidity: "70% – 85% RH",
-        light: "Full-Spectrum 5000K LED",
+        light: "Warm 3000K LED",
       },
       {
         name: "Cushion Pillow Moss",
@@ -142,27 +142,27 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         name: "Integrated Smart Lid System",
         category: "Hardware Engine",
         description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+          "A warm 3000K light with an on/off button, a quiet fan that keeps the glass clear, and a mister, all built into the lid ($0 / included).",
       },
     ],
     care: [
       {
-        label: "Circadian Light",
-        schedule: "8–10h Daily Cycle",
+        label: "Warm Light",
+        schedule: "About 8–10 h a Day",
         detail:
-          "Built-in full-spectrum Halo LED provides optimal PAR light without producing excess heat. No direct window sun needed.",
+          "The built-in 3000K warm white light switches on and off with one button. Turn it on in the morning and off at night; no direct window sun needed.",
       },
       {
-        label: "Ultrasonic Mist",
+        label: "Mister",
         schedule: "2–3 Times Weekly",
         detail:
-          "Cycle the built-in fogger for 3–5 minutes whenever the glass appears dry or frond tips need refreshment.",
+          "Press the mister button once for about 30 seconds of mist whenever the moss looks dry or frond tips need refreshment.",
       },
       {
         label: "Distilled Water",
-        schedule: "Monthly Reservoir Top-Up",
+        schedule: "Check Before Misting",
         detail:
-          "Refill the concealed top hatch with 2–3 oz of distilled or reverse-osmosis water to keep ultrasonic misting discs mineral-free.",
+          "The mister holds about 2 oz of distilled or purified water. Never let it run dry: running the mister empty can damage it.",
       },
       {
         label: "Gentle Pruning",
@@ -180,8 +180,8 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     sku: EDITION_PRODUCTS.fern_study.sku,
     priceCents: EDITION_PRODUCTS.fern_study.priceCents,
     image: images.fern,
-    vessel: "Tall Apothecary Jar · 14 in",
-    vesselNote: "Smooth matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    vessel: "Tall Apothecary Jar",
+    vesselNote: "Smooth matte-white collar lid with built-in warm light, fan & mister",
     overview:
       "A rich botanical exploration of leaf geometry and geological contrast. The intense ruby and blush venation of Fittonia stands out dramatically against the deep black scoria of volcanic rock walls and arching button fern stems.",
     story:
@@ -195,7 +195,7 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         description:
           "Striking ruby, blush, and white mosaic-veined leaves that serve as a natural living hygrometer—softening when dry and perking up when misted.",
         humidity: "75% – 90% RH",
-        light: "Warm 4000K–5000K LED",
+        light: "Warm 3000K LED",
       },
       {
         name: "Button Fern",
@@ -233,27 +233,27 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         name: "Integrated Smart Lid System",
         category: "Hardware Engine",
         description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+          "A warm 3000K light with an on/off button, a quiet fan that keeps the glass clear, and a mister, all built into the lid ($0 / included).",
       },
     ],
     care: [
       {
-        label: "Circadian Light",
-        schedule: "8–10h Daily Cycle",
+        label: "Warm Light",
+        schedule: "About 8–10 h a Day",
         detail:
-          "The under-lid LED illuminates the venation of the Fittonia and gives ferns steady, reliable daylight.",
+          "The warm 3000K light illuminates the venation of the Fittonia and gives ferns steady light. One button turns it on and off.",
       },
       {
-        label: "Ultrasonic Mist",
+        label: "Mister",
         schedule: "Every 2–3 Days",
         detail:
-          "Run the fogger for 5 minutes. The porous volcanic rock absorbs ambient mist and gradually releases it throughout the day.",
+          "Press the mister button for about 30 seconds of mist; press again to add another 30. The porous volcanic rock absorbs the mist and gradually releases it throughout the day.",
       },
       {
         label: "Distilled Water",
-        schedule: "Monthly Top-Up",
+        schedule: "Check Before Misting",
         detail:
-          "Always use distilled water to prevent white calcium mineral scale from accumulating on the dark volcanic stone.",
+          "Fill the 2 oz mister with distilled or purified water to prevent white mineral scale on the dark volcanic stone. Never let it run dry.",
       },
       {
         label: "Leaf Hydration",
@@ -271,8 +271,8 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
     sku: EDITION_PRODUCTS.moss_garden.sku,
     priceCents: EDITION_PRODUCTS.moss_garden.priceCents,
     image: images.moss,
-    vessel: "Tall Fluted Apothecary Jar · 14 in",
-    vesselNote: "Helical ridged matte-white collar lid with integrated circadian LED, fan & ultrasonic fogger",
+    vessel: "Tall Fluted Apothecary Jar",
+    vesselNote: "Helical ridged matte-white collar lid with built-in warm light, fan & mister",
     overview:
       "A minimalist meditation on ancient non-vascular bryophytes. Contoured ribbons of fine white silica sand flow between velvety domes of cushion moss and feathery plumes of prehistoric Selaginella clubmoss beneath a fluted ridged collar.",
     story:
@@ -286,7 +286,7 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         description:
           "Smooth, undulating domes of velvet-green moss that stay vivid year-round and absorb ambient mist directly through their leaves.",
         humidity: "75% – 95% RH",
-        light: "Soft 5000K Diffused Glow",
+        light: "Soft 3000K Warm Glow",
       },
       {
         name: "Selaginella Clubmoss",
@@ -318,39 +318,39 @@ export const STUDIO_EDITIONS: Record<EditionKey, StudioEdition> = {
         name: "Helical Ridged Apothecary Lid",
         category: "Vessel Collar",
         description:
-          "Custom-molded matte-white lid featuring architectural diagonal fluting and concealed USB-A power routing.",
+          "Custom-molded matte-white lid featuring architectural diagonal fluting and a tidy white USB power cord.",
       },
       {
         name: "Integrated Smart Lid System",
         category: "Hardware Engine",
         description:
-          "Circadian PWM grow LED, whisper-quiet micro ventilation fan, and 113kHz ultrasonic piezo fogger built directly into the matte-white lid ($0 / included).",
+          "A warm 3000K light with an on/off button, a quiet fan that keeps the glass clear, and a mister, all built into the lid ($0 / included).",
       },
     ],
     care: [
       {
-        label: "Circadian Light",
-        schedule: "6–8h Daily Cycle",
+        label: "Warm Light",
+        schedule: "About 6–8 h a Day",
         detail:
-          "Moss prefers gentle, cooler light. The built-in LED provides the ideal spectrum without drying out the domes.",
+          "Moss prefers gentle light. Switch the warm 3000K light on for part of the day; it won't dry out the domes.",
       },
       {
-        label: "Ultrasonic Mist",
+        label: "Mister",
         schedule: "Once or Twice Weekly",
         detail:
-          "A brief 3-minute mist cycle is all that is required. Dew settles gently across the cushion tops.",
+          "One press of the mister (about 30 seconds) is all that is required. Dew settles gently across the cushion tops.",
       },
       {
         label: "Distilled Water",
-        schedule: "Every 4–6 Weeks",
+        schedule: "Check Before Misting",
         detail:
-          "Because closed moss recycling is so efficient, reservoir refills are needed only once every month or two.",
+          "Moss needs little extra water, so the 2 oz mister lasts a long time. Use distilled or purified water and never let it run dry.",
       },
       {
         label: "Condensation Check",
         schedule: "Self-Regulating",
         detail:
-          "Light morning fog on the glass is normal and healthy. The built-in micro fan gently circulates air to maintain clarity.",
+          "Light condensation on the glass is normal and healthy. Switch on the built-in fan to clear the glass so you can see the garden.",
       },
     ],
   },

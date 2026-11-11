@@ -19,7 +19,7 @@ export const QUARANTINE_HOURS = 72;
 export interface DeliveryOptionSpec {
   title: string;
   summary: string;
-  /** True when builds are planted and soldered in the studio. */
+  /** True when builds are planted and assembled in the studio. */
   assembled: boolean;
   /** Business days from order until the build is handed off or the kit ships. */
   leadBusinessDays: { min: number; max: number };

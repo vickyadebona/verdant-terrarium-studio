@@ -200,7 +200,7 @@ function Home({
           </h2>
           <p>
             Each vessel is self-sustaining, pairing hand-layered woodland substrates with gentle
-            daylight and mist tucked quietly beneath its ceramic-finish lid.
+            light and mist tucked quietly beneath its lid.
           </p>
           <button className="text-arrow-link" onClick={() => navigate("terracare")}>
             Read our TerraCare guide <ArrowIcon />
@@ -386,7 +386,7 @@ function Builder({
             <div className="smart-lid-banner-text">
               <strong>All-Inclusive Smart Climate Lid</strong>
               <p>
-                Every TerraScape vessel arrives complete with our team&apos;s custom circadian LED lighting, active ventilation fan, and ultrasonic misting manifold integrated directly into the lid collar ($0 / included).
+                Every TerraScape vessel arrives complete with a warm 3000K light, a quiet fan that keeps the glass clear, and a mister, each with its own on/off button, built into the lid ($0 / included).
               </p>
             </div>
           </div>
@@ -724,12 +724,12 @@ function TerraCarePage({ navigate }: { navigate: (page: Page) => void }) {
           </article>
           <article className="step-card">
             <div className="step-card-body">
-              <span>Step 04 · Lid & USB-A Power</span>
+              <span>Step 04 · Lid & Power</span>
               <h3>Fill & Seat the Lid</h3>
               <p>
-                Open the small top hatch on the white lid, add distilled water to the fogger
-                reservoir, place the lid onto the jar rim, and plug in the attached white USB-A
-                cable.
+                Unscrew the mister&apos;s small water container, fill it with about 2 oz of
+                distilled or purified water and screw it back on. Then seat the lid on the jar rim
+                and plug the white cord into the USB power adapter from the box.
               </p>
             </div>
             <img
@@ -751,26 +751,26 @@ function TerraCarePage({ navigate }: { navigate: (page: Page) => void }) {
             <span>01</span>
             <h3>Water & Mist</h3>
             <p>
-              Always use <strong>distilled or rainwater</strong> (tap water leaves mineral spots on
-              the glass and moss). Run the fogger for 5–10 minutes every few days, or whenever the
-              moss feels slightly dry to the touch.
+              Always use <strong>distilled or purified water</strong> (tap water leaves mineral spots
+              on the glass and moss). One press of the mister gives about 30 seconds of mist; use it
+              every few days, or whenever the moss feels slightly dry. Never let the mister run dry.
             </p>
           </article>
           <article>
             <span>02</span>
             <h3>Reading the Glass</h3>
             <p>
-              A light veil of morning mist on the glass is a sign of a healthy water cycle. If
-              heavy droplets cover the entire jar all day, crack the lid or run the fan for an hour
-              to let excess moisture breathe.
+              A little condensation on the glass is a sign of a healthy water cycle. If heavy
+              droplets cover the jar, switch on the fan to clear the glass, or crack the lid to let
+              excess moisture breathe.
             </p>
           </article>
           <article>
             <span>03</span>
             <h3>Light & Pruning</h3>
             <p>
-              The built-in Halo LED provides all the light your plants need (8–10 hours a day is
-              ideal). If a fern frond grows tall enough to press against the lid, snip it cleanly
+              The built-in warm 3000K light provides all the light your plants need. Switch it on
+              for about 8–10 hours a day. If a fern frond grows tall enough to press against the lid, snip it cleanly
               at the base with small scissors.
             </p>
           </article>
@@ -812,11 +812,11 @@ const FAQ_SECTIONS = [
       },
       {
         q: "What is the difference between the Smooth Lid and the Ridged Lid?",
-        a: "Both lids are crafted in a warm matte-white finish and house the exact same under-lid light and fogger options. The Smooth Lid offers a quiet, minimalist cylinder silhouette, while the Ridged Lid features subtle diagonal fluting around the outer collar.",
+        a: "Both lids are crafted in a warm matte-white finish and house the exact same light, fan and mister. The Smooth Lid offers a quiet, minimalist cylinder silhouette, while the Ridged Lid features subtle diagonal fluting around the outer collar.",
       },
       {
         q: "How long does it take to build and ship my custom terrarium?",
-        a: `Studio builds are soldered, planted and rested for ${QUARANTINE_HOURS} hours in our Los Angeles, CA studio, then hand-delivered by our Southern California courier or ready for pickup in ${DELIVERY_OPTIONS.courier.leadBusinessDays.min}–${DELIVERY_OPTIONS.courier.leadBusinessDays.max} business days. Nationwide orders ship as DIY kits within ${DELIVERY_OPTIONS.shipped.leadBusinessDays.min}–${DELIVERY_OPTIONS.shipped.leadBusinessDays.max} business days; shipping is ${formatCents(SHIPPED_FEE_CENTS)}.`,
+        a: `Studio builds are assembled, planted and rested for ${QUARANTINE_HOURS} hours in our Los Angeles, CA studio, then hand-delivered by our Southern California courier or ready for pickup in ${DELIVERY_OPTIONS.courier.leadBusinessDays.min}–${DELIVERY_OPTIONS.courier.leadBusinessDays.max} business days. Nationwide orders ship as DIY kits within ${DELIVERY_OPTIONS.shipped.leadBusinessDays.min}–${DELIVERY_OPTIONS.shipped.leadBusinessDays.max} business days; shipping is ${formatCents(SHIPPED_FEE_CENTS)}.`,
       },
     ],
   },
@@ -825,19 +825,19 @@ const FAQ_SECTIONS = [
     items: [
       {
         q: "How is the terrarium lid powered?",
-        a: "The under-lid light and fogger unit is powered by an attached white USB-A cable that exits cleanly through the back of the lid collar. You can plug it into any standard 5V USB-A wall adapter, desktop port, or smart USB timer.",
+        a: "The lid runs on 5 V USB power. A UL-certified 5 V 2 A USB power adapter comes in the box, with a white cord about 5.5 ft long that exits cleanly through the back of the lid.",
       },
       {
         q: "How often do I need to water my terrarium?",
-        a: "Closed circular terrariums recycle their own moisture. Typically, running the built-in fogger for a few minutes once or twice a week—and refilling the top reservoir with distilled water every 3–4 weeks—is all that is needed.",
+        a: "Terrariums recycle much of their own moisture. Typically, one or two presses of the mister (about 30 seconds each) once or twice a week is all that is needed. Keep its 2 oz water container topped up; the mister must never run dry.",
       },
       {
-        q: "What kind of water should I use in the fogger reservoir?",
-        a: "We recommend distilled water or filtered rainwater. Hard tap water contains minerals that can cloud the glass over time and clog the ultrasonic misting disc.",
+        q: "What kind of water should I use in the mister?",
+        a: "Use distilled or purified water. Hard tap water contains minerals that can cloud the glass over time and clog the mister.",
       },
       {
-        q: "Does my terrarium need natural window light if it has the Halo LED?",
-        a: "No window is required! The warm full-spectrum Halo LED built into the under-lid unit provides everything your ferns, fittonia, and moss need, even in windowless offices or interior bookshelves.",
+        q: "Does my terrarium need natural window light?",
+        a: "No window is required. The warm 3000K light built into the lid provides everything your ferns, fittonia, and moss need, even in windowless offices or interior bookshelves. One button turns it on and off.",
       },
     ],
   },
@@ -983,8 +983,8 @@ function About({
             <em>inside and out.</em>
           </h1>
           <p className="lead">
-            Explore our circular apothecary vessel in 3D. Toggle the gentle canopy light and
-            fogger, then see how each piece is crafted and planted in our studio.
+            Explore our circular apothecary vessel in 3D. Toggle the warm light and
+            mister, then see how each piece is crafted and planted in our studio.
           </p>
           <div className="hero-cta-row">
             <button className="primary-button" onClick={() => navigate("build")}>
@@ -995,7 +995,7 @@ function About({
             <span>3D</span>
             <p>
               Use the <strong>3D</strong> and <strong>Studio</strong> tabs on the viewer to rotate
-              the vessel or toggle the <strong>Fogger</strong> and <strong>LED</strong>.
+              the vessel or toggle the <strong>Mister</strong> and <strong>Light</strong>.
             </p>
           </div>
         </div>
@@ -1004,7 +1004,7 @@ function About({
             selectedIds={selected}
             fallbackPhotoUrl={images.hero}
             captionTitle="Interactive 3D Vessel"
-            captionPrice="Rotate 360° · Toggle Fogger & LED"
+            captionPrice="Rotate 360° · Toggle Mister & Light"
           />
         </div>
       </section>
@@ -1026,7 +1026,7 @@ function About({
           <article className="step-card">
             <div className="step-card-body">
               <span>Stage 01 · Vessel & Lid</span>
-              <h3>Blown Glass & Collar</h3>
+              <h3>Glass Jar & Collar</h3>
               <p>
                 We start with a tall, clear circular glass jar and pair it with our custom-molded
                 matte-white lid—available in a clean smooth profile or a softly fluted ridge finish.
@@ -1035,7 +1035,7 @@ function About({
             <img
               className="step-card-img"
               src={images.jar}
-              alt="Stage 01 placeholder: Hand-blown circular glass jar and matte-white collar lid"
+              alt="Stage 01 placeholder: Circular glass jar and matte-white collar lid"
             />
           </article>
           <article className="step-card">
@@ -1043,14 +1043,14 @@ function About({
               <span>Stage 02 · Under the Lid</span>
               <h3>Quiet Light & Mist</h3>
               <p>
-                Nestled directly beneath the lid is a slim unit that houses a warm full-spectrum
-                grow light and a whisper-quiet fogger, powered by a clean white USB-A cable.
+                Nestled directly beneath the lid is a slim unit that houses a warm 3000K light, a
+                quiet fan and a mister, each with its own button, powered by a white USB cord.
               </p>
             </div>
             <img
               className="step-card-img"
               src={images.hero}
-              alt="Stage 02 placeholder: Under-lid warm LED light and ultrasonic fogger unit"
+              alt="Stage 02 placeholder: Under-lid warm light, fan and mister unit"
             />
           </article>
           <article className="step-card">

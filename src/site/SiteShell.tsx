@@ -15,6 +15,12 @@ const NAV_LINKS: Array<{ href: string; label: string; activeFor: string[] }> = [
   { href: "/faq", label: "FAQ", activeFor: ["/faq"] },
 ];
 
+/**
+ * The footer email signup stays hidden until there is a privacy policy (TS-47) and somewhere
+ * for the addresses to go. The field is not wired up yet.
+ */
+const SHOW_NEWSLETTER_SIGNUP = false;
+
 // The Studio and account pages are full-height tools without the marketing footer.
 const PAGES_WITHOUT_FOOTER = ["/studio", "/account"];
 
@@ -157,16 +163,18 @@ export function SiteShell({ children }: { children: ReactNode }) {
               </Link>
             ))}
           </div>
-          <div className="newsletter">
-            <strong>Notes from the greenhouse</strong>
-            <p>Seasonal care, new flora, and studio stories from Los Angeles, CA.</p>
-            <label>
-              <input type="email" placeholder="Email address" />
-              <button aria-label="Subscribe">
-                <ArrowIcon />
-              </button>
-            </label>
-          </div>
+          {SHOW_NEWSLETTER_SIGNUP && (
+            <div className="newsletter">
+              <strong>Notes from the greenhouse</strong>
+              <p>Seasonal care, new flora, and studio stories from Los Angeles, CA.</p>
+              <label>
+                <input type="email" placeholder="Email address" />
+                <button aria-label="Subscribe">
+                  <ArrowIcon />
+                </button>
+              </label>
+            </div>
+          )}
           <small>© 2026 TerraScape · Los Angeles, CA · Living worlds, made by hand.</small>
         </footer>
       )}
