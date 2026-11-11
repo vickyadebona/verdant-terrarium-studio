@@ -314,7 +314,7 @@ export default function Terrarium3DShowcase({
     <div
       className={`terrarium-showcase ${compact ? "compact" : ""} ${lightOn ? "light-active" : "light-dim"}`}
     >
-      {/* Simplified, Friendly Controls: Just "3D" and "Studio" + "Fogger" and "LED" */}
+      {/* Simplified, Friendly Controls: Just "3D" and "Studio" + "Mister" and "Light" */}
       <div className="showcase-toolbar">
         <div className="mode-pill-group" role="tablist" aria-label="Showcase mode">
           <button
@@ -344,7 +344,7 @@ export default function Terrarium3DShowcase({
             onClick={() => setMistOn(!mistOn)}
           >
             <span className="dot mist" />
-            Fogger
+            Mister
           </button>
           <button
             type="button"
@@ -352,7 +352,7 @@ export default function Terrarium3DShowcase({
             onClick={() => setLightOn(!lightOn)}
           >
             <span className="dot warm" />
-            LED
+            Light
           </button>
         </div>
       </div>
@@ -389,7 +389,7 @@ export default function Terrarium3DShowcase({
               <span className="fog-layer f2" />
             </div>
           )}
-          <div className="webgl-hint">Studio photography · Toggle Fogger & LED above</div>
+          <div className="webgl-hint">Studio photography · Toggle Mister & Light above</div>
         </div>
       </div>
 

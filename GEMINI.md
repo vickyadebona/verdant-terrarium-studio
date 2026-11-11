@@ -2,10 +2,10 @@
 
 ## Repository & Owner
 - **Developer:** Vicky Adebona (https://github.com/vickyadebona)
-- **Hardware & Botanical Partner:** Andrew Hung (Mechanical Engineering, Custom PCB/Lighting & Ultrasonic Misting Circuits)
+- **Hardware & Botanical Partner:** Andrew Hung (Mechanical Engineering, custom PCB, lighting & mister circuits)
 
 ## Project Overview
-TerraScape is an e-commerce platform and guided product configurator for custom-built botanical terrariums equipped with custom-engineered microclimate electronics (PWM circadian LED rings, active aeration fans, and ultrasonic piezo misting manifolds).
+TerraScape is an e-commerce platform and guided product configurator for custom-built botanical terrariums equipped with a lid unit with a warm 3000K on/off light, a glass-clearing fan and a mister (one press ≈ 30 s, 2 oz reservoir), powered by an included 5 V 2 A USB adapter.
 
 ## Current Implementation Status
 - **Guided Studio Wizard & Storefront:**

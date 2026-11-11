@@ -61,7 +61,7 @@ export const STUDIO_OPTIONS: StudioOption[] = [
     id: 'jar_smooth',
     sku: 'VSL-CIR-SM',
     name: 'Tall Apothecary Jar · Smooth Lid',
-    note: 'Hand-blown circular glass · Integrated LED, fan & ultrasonic mist lid · 14 in',
+    note: 'Circular glass jar · Lid with built-in warm light, fan & mister',
     priceCents: 8400,
     category: 'Vessel',
   }),
@@ -69,7 +69,7 @@ export const STUDIO_OPTIONS: StudioOption[] = [
     id: 'jar_ridged',
     sku: 'VSL-CIR-RG',
     name: 'Tall Apothecary Jar · Ridged Lid',
-    note: 'Hand-blown circular glass · Fluted collar with integrated LED, fan & mist · 14 in',
+    note: 'Circular glass jar · Fluted lid with built-in warm light, fan & mister',
     priceCents: 9200,
     category: 'Vessel',
   }),
@@ -224,7 +224,7 @@ export const ACCESSORY_PRODUCTS = {
   },
 } satisfies Record<string, Product>;
 
-/** Hand-planting and soldering in the LA studio, per custom build. */
+/** Hand-planting and lid assembly in the LA studio, per custom build. */
 export const ASSEMBLY_FEE_CENTS = 2500;
 // Placeholder fee until the team confirms real shipping costs.
 export const COURIER_FEE_CENTS = 1800;

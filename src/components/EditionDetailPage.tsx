@@ -78,7 +78,7 @@ export function EditionDetailPage({
                 <circle cx="12" cy="12" r="5" />
                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
               </svg>
-              Smart Circadian Lid Included
+              Smart Lid Included
             </span>
             <span className="edition-meta-pill">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -187,10 +187,10 @@ export function EditionDetailPage({
       <section className="edition-detail-section">
         <div className="edition-section-header">
           <p className="eyebrow">Part 03 · Climate Engineering</p>
-          <h2>Smart Circadian Lid Included Standard</h2>
+          <h2>Smart Lid Included Standard</h2>
           <p>
-            Lighting, gentle air circulation, and ultrasonic fogging are all included with every TerraScape jar at no extra cost.
-            Concealed quietly beneath the ceramic-finish lid, the hardware works in harmony with the plants.
+            A warm light, a quiet fan and a mister are all included with every TerraScape jar at no extra cost.
+            Tucked quietly beneath the lid, each one turns on and off with its own button.
           </p>
         </div>
 
@@ -222,10 +222,10 @@ export function EditionDetailPage({
             >
               Standard · $0 Included
             </span>
-            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Circadian 5000K LED</h3>
+            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Warm 3000K Light</h3>
             <p style={{ fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ts-muted)" }}>
-              Custom-calibrated full-spectrum diode ring provides optimal Photosynthetically Active Radiation (PAR)
-              without generating trapped heat inside the glass.
+              A warm white 3000K light gives moss and ferns steady light without a sunny window. One button turns it on
+              and off.
             </p>
           </div>
 
@@ -250,10 +250,10 @@ export function EditionDetailPage({
             >
               Standard · $0 Included
             </span>
-            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>113kHz Ultrasonic Mist</h3>
+            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Mister</h3>
             <p style={{ fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ts-muted)" }}>
-              Piezo-ceramic atomizer converts pure distilled water into cold sub-micron fog particles that coat leaves
-              just like high-altitude mountain dew.
+              One press mists for about 30 seconds from a 2 oz reservoir of distilled or purified water. Keep it
+              topped up: the mister must never run dry.
             </p>
           </div>
 
@@ -278,10 +278,9 @@ export function EditionDetailPage({
             >
               Standard · $0 Included
             </span>
-            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Micro Air Circulation</h3>
+            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Quiet Fan</h3>
             <p style={{ fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ts-muted)" }}>
-              A low-decibel micro blower circulates internal moisture pockets, balancing humidity gradients and keeping
-              the viewing glass crystal clear.
+              A small fan moves air inside the jar to keep the glass clear, so you can always see the garden.
             </p>
           </div>
 
@@ -306,10 +305,10 @@ export function EditionDetailPage({
             >
               Standard · $0 Included
             </span>
-            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>USB-A Power Routing</h3>
+            <h3 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>USB Power, Included</h3>
             <p style={{ fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ts-muted)" }}>
-              Powered by a standard 5V braided linen USB-A cable that blends into desk and shelf settings without unsightly
-              clutter.
+              A UL-certified 5 V USB power adapter comes in the box, with a white cord about 5.5 ft long that sits
+              neatly on a desk or shelf.
             </p>
           </div>
         </div>

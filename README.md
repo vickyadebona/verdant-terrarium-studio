@@ -10,12 +10,12 @@ An interactive botanical terrarium studio and e-commerce platform built with **R
 ## ✨ Key Features
 
 - **Guided Studio Wizard:** 4-step progressive configurator (**Vessel & Smart Lid** $\rightarrow$ **Stratified Foundation** $\rightarrow$ **Live Flora** $\rightarrow$ **Hardscape Details**).
-- **Dual Visualizer Stage:** Procedural 2D cross-section architectural cutaway ([`Terrarium2DLayeredView.tsx`](./src/Terrarium2DLayeredView.tsx)) paired with an interactive 3D WebGL showcase with orbit controls and ultrasonic mist particles ([`Terrarium3DShowcase.tsx`](./src/Terrarium3DShowcase.tsx)).
+- **Dual Visualizer Stage:** Procedural 2D cross-section architectural cutaway ([`Terrarium2DLayeredView.tsx`](./src/Terrarium2DLayeredView.tsx)) paired with an interactive 3D WebGL showcase with orbit controls and mist particles ([`Terrarium3DShowcase.tsx`](./src/Terrarium3DShowcase.tsx)).
 - **Curated Signature Editions:** Ready-to-ship 1-of-1 vivariums with high-resolution photography, technical specs, and one-click cart additions.
-- **Integrated Smart Climate Lid:** Circadian PWM lighting, active ventilation fan, and ultrasonic atomization manifold standard with every order.
+- **Integrated Smart Lid:** warm 3000K light with an on/off button, a fan that keeps the glass clear, and a mister, standard with every order today (the lineup is being revised).
 - **Tamper-Resistant Pricing & Order Engine:** Authoritative server-style catalog recalculation against master SKUs before checkout.
 - **5-Stage Living Assembly Tracker:** Tracks living vivariums through Andrew's actual workshop process (`BLUEPRINT_RECEIVED` $\rightarrow$ `CIRCUIT_SOLDERING` $\rightarrow$ `PLANTING` $\rightarrow$ `QUARANTINE` $\rightarrow$ `SHIPPED`).
-- **Zero-Asset Web Audio:** Procedurally synthesized organic sound effects (pop sweeps, sand crunches, ultrasonic mist hiss) with zero audio file downloads.
+- **Zero-Asset Web Audio:** Procedurally synthesized organic sound effects (pop sweeps, sand crunches, mist hiss) with zero audio file downloads.
 
 ---
 

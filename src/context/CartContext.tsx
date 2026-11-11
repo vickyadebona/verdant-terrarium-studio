@@ -134,8 +134,8 @@ const STAGE_CONFIGS: Record<
   },
   CIRCUIT_SOLDERING: {
     next: 'PLANTING',
-    title: 'Circuits Soldered & Tested',
-    defaultNote: 'Our team soldered the PWM LED ring, ultrasonic piezo misting transducer, and I2C sensor bus. Oscilloscope test: PASS.',
+    title: 'Lid Assembled & Tested',
+    defaultNote: 'Our team assembled the lid unit and tested the light, fan and mister.',
   },
   PLANTING: {
     next: 'QUARANTINE',
@@ -145,7 +145,7 @@ const STAGE_CONFIGS: Record<
   QUARANTINE: {
     next: 'SHIPPED',
     title: `${QUARANTINE_HOURS}-Hour Micro-Climate Quarantine & Acclimation`,
-    defaultNote: 'Terrarium sealed inside incubation bay. Automated misting and circadian day/night lighting cycling cleanly.',
+    defaultNote: 'Terrarium resting in the studio so the plants settle in before they travel.',
   },
   SHIPPED: {
     next: null,
